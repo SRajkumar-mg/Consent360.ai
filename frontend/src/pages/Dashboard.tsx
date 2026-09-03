@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { dashboardApi } from '../api'
+import { dashboardApi, type KpiPoint, type KpiValue } from '../api'
 import { Badge, PageHead, Skeleton, StatCard, formatDate } from '../components/ui'
 import { IconAlert, IconCheck, IconClock, IconHistory, IconShield, IconUsers, IconX } from '../components/icons'
 import {
-  Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
+  Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts'
 import type { DashboardResponse } from '../types'
 
@@ -29,9 +29,16 @@ function ChartTip({ active, payload, label }: { active?: boolean; payload?: Arra
 export function DashboardPage() {
   const [data, setData] = useState<DashboardResponse | null>(null)
   const [error, setError] = useState('')
+  const [kpis, setKpis] = useState<Record<string, KpiValue> | null>(null)
+  const [trend, setTrend] = useState<KpiPoint[]>([])
 
   useEffect(() => {
     dashboardApi.get().then((r) => setData(r.data)).catch(() => setError('Failed to load dashboard'))
+  }, [])
+
+  useEffect(() => {
+    dashboardApi.kpis().then((r) => setKpis(r.data.kpis)).catch(() => setKpis(null))
+    dashboardApi.kpiTrends('K-11', 90).then((r) => setTrend(r.data.points)).catch(() => setTrend([]))
   }, [])
 
   if (error) return <div className="alert alert-error">{error}</div>
@@ -83,6 +90,40 @@ export function DashboardPage() {
         <StatCard label="Withdrawn" value={m.withdrawn_consents} icon={<IconX size={20} />} tone="danger" sub="withdrawn by principal or admin" />
         <StatCard label="Expired" value={m.expired_consents} icon={<IconHistory size={20} />} tone="slate" sub="past validity period" />
       </div>
+
+      {kpis && (
+        <div className="card card-hover mb">
+          <div className="card-header">
+            <h3>Compliance KPIs (Phase 1)</h3>
+            <span className="text-sm muted">Derived from live data · benchmark KPIs K-11 — K-20</span>
+          </div>
+          <div className="card-body">
+            <div className="stat-grid">
+              {Object.entries(kpis).map(([id, k]) => (
+                <div key={id} className="card" style={{ padding: 16 }}>
+                  <div className="text-sm muted" style={{ fontWeight: 600 }}>{id} · {k.name}</div>
+                  <div style={{ fontSize: 24, fontWeight: 750, marginTop: 6 }}>{k.value}</div>
+                  <div className="text-xs muted">{k.metric}</div>
+                </div>
+              ))}
+            </div>
+            {trend.length > 0 && (
+              <div style={{ marginTop: 12 }}>
+                <div className="text-sm muted" style={{ fontWeight: 600, marginBottom: 8 }}>K-11 consent coverage trend (90d)</div>
+                <ResponsiveContainer width="100%" height={160}>
+                  <LineChart data={trend}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#eef1f6" />
+                    <XAxis dataKey="period" stroke="#8a97b3" fontSize={10} />
+                    <YAxis allowDecimals={false} stroke="#8a97b3" fontSize={10} />
+                    <Tooltip content={<ChartTip />} />
+                    <Line type="monotone" dataKey="value" name="Coverage" stroke="#4f6ef7" strokeWidth={2} dot={{ r: 2 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="grid-2 mb">
         <div className="card card-hover">

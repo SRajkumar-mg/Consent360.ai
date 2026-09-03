@@ -56,6 +56,11 @@ CONSENT_TRANSITIONS = {
 
 DECISION_OUTCOMES = ["ALLOW", "DENY", "REQUIRE_CONSENT", "EXPIRED", "WITHDRAWN"]
 
+BANNER_EVENT_TYPES = ["NOTICE_SHOWN", "ACCEPT_ALL", "REJECT_ALL", "GRANULAR_DECISION"]
+RIGHT_REQUEST_TYPES = ["ACCESS", "CORRECTION", "ERASURE", "NOMINATION"]
+RIGHT_REQUEST_STATUSES = ["RECEIVED", "ACKNOWLEDGED", "IN_PROGRESS", "RESOLVED", "CLOSED", "DENIED"]
+GRIEVANCE_STATUSES = ["RECEIVED", "ACKNOWLEDGED", "ESCALATED", "RESOLVED"]
+
 AUDIT_EVENTS = [
     "CONSENT_CREATED",
     "CONSENT_GRANTED",
@@ -460,3 +465,123 @@ class OrganizationUser(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     organization: Mapped["Organization"] = relationship("Organization", back_populates="users")
+
+
+class TenantSettings(Base):
+    __tablename__ = "tenant_settings"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    tenant_code: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)
+    dpo_name: Mapped[str] = mapped_column(String(128), default="")
+    dpo_contact: Mapped[str] = mapped_column(String(256), default="")
+    withdraw_url: Mapped[str] = mapped_column(String(512), default="")
+    rights_url: Mapped[str] = mapped_column(String(512), default="")
+    grievance_url: Mapped[str] = mapped_column(String(512), default="")
+    board_complaint_url: Mapped[str] = mapped_column(String(512), default="")
+    grievance_response_days: Mapped[int] = mapped_column(Integer, default=30)
+    default_language: Mapped[str] = mapped_column(String(10), default="en")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+
+class Notice(Base):
+    __tablename__ = "notices"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    tenant_id: Mapped[int | None] = mapped_column(ForeignKey("tenant_settings.id"), nullable=True)
+    purpose_id: Mapped[int | None] = mapped_column(ForeignKey("purposes.id"), nullable=True)
+    title: Mapped[str] = mapped_column(EncryptedText, default="")
+    body: Mapped[str] = mapped_column(EncryptedText, default="")
+    language: Mapped[str] = mapped_column(String(10), default="en")
+    status: Mapped[str] = mapped_column(String(32), default="DRAFT")
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    data_items: Mapped[list] = mapped_column(JSON, default=list)
+    services_enabled: Mapped[list] = mapped_column(JSON, default=list)
+    retention_text: Mapped[str] = mapped_column(String(512), default="")
+    checklist_passed: Mapped[bool] = mapped_column(Boolean, default=False)
+    checklist_reviewer: Mapped[str] = mapped_column(String(64), default="")
+    checklist_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_by: Mapped[str] = mapped_column(String(64), default="system")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+    tenant: Mapped["TenantSettings | None"] = relationship("TenantSettings")
+    purpose: Mapped["Purpose | None"] = relationship("Purpose")
+
+
+class RightsRequest(Base):
+    __tablename__ = "rights_requests"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    tenant_id: Mapped[int] = mapped_column(Integer, default=1)
+    customer_id: Mapped[int] = mapped_column(ForeignKey("customers.id"), nullable=False, index=True)
+    type: Mapped[str] = mapped_column(String(32), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), default="RECEIVED", index=True)
+    received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    acknowledged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    due_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    identity_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    assignee_user_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    resolution: Mapped[str] = mapped_column(EncryptedText, default="")
+    evidence_ref: Mapped[str] = mapped_column(String(128), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+    customer: Mapped["Customer"] = relationship("Customer")
+
+
+class Grievance(Base):
+    __tablename__ = "grievances"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    tenant_id: Mapped[int] = mapped_column(Integer, default=1)
+    customer_id: Mapped[int] = mapped_column(ForeignKey("customers.id"), nullable=False, index=True)
+    reference_no: Mapped[str] = mapped_column(String(32), unique=True, nullable=False, index=True)
+    category: Mapped[str] = mapped_column(String(64), default="general")
+    description: Mapped[str] = mapped_column(EncryptedText, default="")
+    status: Mapped[str] = mapped_column(String(32), default="RECEIVED", index=True)
+    received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    acknowledged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    due_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    escalated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    resolution_summary: Mapped[str] = mapped_column(EncryptedText, default="")
+    feedback: Mapped[str] = mapped_column(EncryptedText, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+    customer: Mapped["Customer"] = relationship("Customer")
+
+
+class BannerEvent(Base):
+    __tablename__ = "banner_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    tenant_id: Mapped[int] = mapped_column(Integer, default=1)
+    customer_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    session_id: Mapped[str] = mapped_column(String(64), default="")
+    purpose_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    event_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    language: Mapped[str] = mapped_column(String(10), default="en")
+    banner_version: Mapped[str] = mapped_column(String(32), default="1.0")
+    control_id: Mapped[str] = mapped_column(String(64), default="")
+    notice_version: Mapped[str] = mapped_column(String(64), default="")
+    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class KpiSnapshot(Base):
+    __tablename__ = "kpi_snapshots"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    tenant_id: Mapped[int] = mapped_column(Integer, default=1)
+    kpi_id: Mapped[str] = mapped_column(String(32), nullable=False)
+    kpi_name: Mapped[str] = mapped_column(String(128), nullable=False)
+    period: Mapped[str] = mapped_column(String(32), nullable=False)
+    period_start: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    period_end: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    value: Mapped[int] = mapped_column(Integer, default=0)
+    details: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

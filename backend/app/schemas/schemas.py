@@ -651,3 +651,225 @@ class OrganizationDashboardOut(BaseModel):
     active_consents: int = 0
     consent_summary: list[dict] = []
     recent_activity: list[AuditEventOut] = []
+
+
+# ---------------------------------------------------------------------------
+# Tenant Settings
+# ---------------------------------------------------------------------------
+class TenantSettingsIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    tenant_code: str = Field(min_length=1, max_length=64)
+    dpo_name: str = ""
+    dpo_contact: str = ""
+    withdraw_url: str = ""
+    rights_url: str = ""
+    grievance_url: str = ""
+    board_complaint_url: str = ""
+    grievance_response_days: int = Field(default=30, ge=1)
+    default_language: str = Field(default="en", max_length=10)
+
+
+class TenantSettingsOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    tenant_code: str
+    dpo_name: str
+    dpo_contact: str
+    withdraw_url: str
+    rights_url: str
+    grievance_url: str
+    board_complaint_url: str
+    grievance_response_days: int
+    default_language: str
+    created_at: datetime
+    updated_at: datetime
+
+
+# ---------------------------------------------------------------------------
+# Notices
+# ---------------------------------------------------------------------------
+class NoticeIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    tenant_id: Optional[int] = None
+    purpose_id: Optional[int] = None
+    title: str = ""
+    body: str = ""
+    language: str = Field(default="en", max_length=10)
+    status: str = Field(default="DRAFT", max_length=32)
+    version: int = 1
+    data_items: list[dict] = []
+    services_enabled: list[dict] = []
+    retention_text: str = ""
+    checklist_passed: bool = False
+    checklist_reviewer: str = ""
+    created_by: str = "system"
+
+
+class NoticeUpdate(BaseModel):
+    title: Optional[str] = None
+    body: Optional[str] = None
+    language: Optional[str] = None
+    status: Optional[str] = None
+    version: Optional[int] = None
+    data_items: Optional[list[dict]] = None
+    services_enabled: Optional[list[dict]] = None
+    retention_text: Optional[str] = None
+    checklist_passed: Optional[bool] = None
+    checklist_reviewer: Optional[str] = None
+    published_at: Optional[datetime] = None
+
+
+class NoticeOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    tenant_id: Optional[int] = None
+    purpose_id: Optional[int] = None
+    title: str
+    body: str
+    language: str
+    status: str
+    version: int
+    data_items: list[dict]
+    services_enabled: list[dict]
+    retention_text: str
+    checklist_passed: bool
+    checklist_reviewer: str
+    checklist_at: Optional[datetime] = None
+    published_at: Optional[datetime] = None
+    created_by: str
+    created_at: datetime
+    updated_at: datetime
+
+
+# ---------------------------------------------------------------------------
+# Rights Requests
+# ---------------------------------------------------------------------------
+class RightsRequestIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    tenant_id: int = 1
+    customer_id: int
+    type: str = Field(max_length=32)
+
+
+class RightsRequestOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    tenant_id: int
+    customer_id: int
+    type: str
+    status: str
+    received_at: datetime
+    acknowledged_at: Optional[datetime] = None
+    due_at: Optional[datetime] = None
+    closed_at: Optional[datetime] = None
+    identity_verified_at: Optional[datetime] = None
+    assignee_user_id: Optional[int] = None
+    resolution: str
+    evidence_ref: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class RightsRequestListOut(BaseModel):
+    id: int
+    tenant_id: int
+    customer_id: int
+    type: str
+    status: str
+    received_at: datetime
+    due_at: Optional[datetime] = None
+    closed_at: Optional[datetime] = None
+    created_at: datetime
+
+
+# ---------------------------------------------------------------------------
+# Grievances
+# ---------------------------------------------------------------------------
+class GrievanceIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    tenant_id: int = 1
+    customer_id: int
+    category: str = Field(default="general", max_length=64)
+    description: str = ""
+
+
+class GrievanceOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    tenant_id: int
+    customer_id: int
+    reference_no: str
+    category: str
+    description: str
+    status: str
+    received_at: datetime
+    acknowledged_at: Optional[datetime] = None
+    due_at: Optional[datetime] = None
+    escalated_at: Optional[datetime] = None
+    resolved_at: Optional[datetime] = None
+    resolution_summary: str
+    feedback: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class GrievanceListOut(BaseModel):
+    id: int
+    tenant_id: int
+    customer_id: int
+    reference_no: str
+    category: str
+    status: str
+    received_at: datetime
+    due_at: Optional[datetime] = None
+    resolved_at: Optional[datetime] = None
+    created_at: datetime
+
+
+# ---------------------------------------------------------------------------
+# Banner Events
+# ---------------------------------------------------------------------------
+class BannerEventIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    tenant_id: int = 1
+    customer_id: Optional[int] = None
+    session_id: str = ""
+    purpose_id: Optional[int] = None
+    event_type: str = Field(max_length=32)
+    language: str = Field(default="en", max_length=10)
+    banner_version: str = Field(default="1.0", max_length=32)
+    control_id: str = ""
+    notice_version: str = ""
+
+
+class BannerEventOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    tenant_id: int
+    customer_id: Optional[int] = None
+    session_id: str
+    purpose_id: Optional[int] = None
+    event_type: str
+    language: str
+    banner_version: str
+    control_id: str
+    notice_version: str
+    occurred_at: datetime
+    created_at: datetime
+
+
+# ---------------------------------------------------------------------------
+# KPI Snapshots
+# ---------------------------------------------------------------------------
+class KpiSnapshotOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    tenant_id: int
+    kpi_id: str
+    kpi_name: str
+    period: str
+    period_start: datetime
+    period_end: datetime
+    value: int
+    details: dict
+    created_at: datetime

@@ -56,7 +56,9 @@ Key rules:
 ### 3.1 Consent Admin Portal (:5173)
 
 **Landing / Login**
-- Public landing page and staff login (`admin` / `Admin@1234` by default).
+- Public landing page and staff login. Local dev accounts are seeded by `backend/seed.py`
+  (not in production); the admin login is created from `SEED_ADMIN_USERNAME` / `SEED_ADMIN_PASSWORD`
+  env vars, or a random must-rotate credential under `ENVIRONMENT=production`.
 
 **Dashboard (Overview)**
 - Metric cards: total customers, consents by status (active/pending/denied/withdrawn/expired/expiring ≤30 days), purposes & policies count.

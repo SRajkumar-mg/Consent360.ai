@@ -11,7 +11,7 @@ const CAT_COLORS: Record<string, string> = {
 
 const DEFAULT_CATS: Record<string, boolean> = {
   necessary: true,
-  functional: true,
+  functional: false,
   analytics: false,
   advertising: false,
 }
@@ -37,7 +37,7 @@ export function CookiePreferenceModal({ onClose, onAcceptAll, onSave, initialLan
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal modal-cookie" onClick={(e) => e.stopPropagation()}>
+      <div className="modal modal-cookie" role="dialog" aria-modal="true" aria-label={t.modalTitle} onClick={(e) => e.stopPropagation()}>
         <div className="modal-cookie-header">
           <div>
             <h2>{t.modalTitle}</h2>

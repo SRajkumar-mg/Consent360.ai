@@ -63,7 +63,7 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
     )
 
 
-from app.api.routes import admin, audit, auth, chatbot, consents, crm, crm_directory, customers, dashboard, data_categories, integration, organizations, policies, portal, processing_activities, purposes  # noqa: E402
+from app.api.routes import admin, audit, auth, banner_events, chatbot, consents, crm, crm_directory, customers, dashboard, data_categories, grievances, integration, notices, organizations, policies, portal, processing_activities, purposes, rights_requests, tenant_settings  # noqa: E402
 
 for r in (
     auth.router,
@@ -82,6 +82,13 @@ for r in (
     organizations.router,
     portal.router,
     chatbot.router,
+    tenant_settings.router,
+    tenant_settings.public_router,
+    notices.router,
+    notices.public_router,
+    rights_requests.router,
+    grievances.router,
+    banner_events.router,
 ):
     app.include_router(r)
 

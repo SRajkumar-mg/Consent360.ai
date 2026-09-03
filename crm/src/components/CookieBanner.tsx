@@ -7,10 +7,11 @@ import { CRM_LANG_KEY, LANGUAGES } from '../languages'
 interface CookieBannerProps {
   customerId: number | null
   onAcceptAll: (lang: string) => void
+  onRejectAll: (lang: string) => void
   onSave: (lang: string, categories: Record<string, boolean>) => void
 }
 
-export function CookieBanner({ customerId, onAcceptAll, onSave }: CookieBannerProps) {
+export function CookieBanner({ customerId, onAcceptAll, onRejectAll, onSave }: CookieBannerProps) {
   const [open, setOpen] = useState(false)
   const [lang, setLang] = useState<string>(() => {
     const saved = localStorage.getItem(CRM_LANG_KEY)
@@ -76,7 +77,11 @@ export function CookieBanner({ customerId, onAcceptAll, onSave }: CookieBannerPr
 
           <div className="consent-banner-actions">
             <button className="btn btn-primary" onClick={() => onAcceptAll(lang)}>{t.acceptAll}</button>
+            <button className="btn btn-primary" style={{ background: 'var(--muted, #64748b)', color: '#fff' }} onClick={() => onRejectAll(lang)}>{t.rejectAll || 'Reject All'}</button>
             <button className="btn btn-ghost" onClick={() => setOpen(true)}>{t.moreOptions}</button>
+          </div>
+          <div className="consent-banner-note">
+            <a href="/cookie-policy" style={{ fontSize: 13, color: 'var(--secondary, #4b5563)' }}>Cookie policy</a>
           </div>
         </div>
       </div>

@@ -57,7 +57,7 @@ const CAT_COLORS: Record<string, string> = {
 
 const DEFAULT_CATS: Record<string, boolean> = {
   necessary: true,
-  functional: true,
+  functional: false,
   analytics: false,
   advertising: false,
 }
@@ -111,6 +111,9 @@ export function CookieBanner({ customerId, onClose, lang: initialLang }: CookieB
 
   const acceptAll = () =>
     persist({ necessary: true, functional: true, analytics: true, advertising: true })
+
+  const rejectAll = () =>
+    persist({ necessary: true, functional: false, analytics: false, advertising: false })
 
   return (
     <div className="modal-overlay">
@@ -183,6 +186,9 @@ export function CookieBanner({ customerId, onClose, lang: initialLang }: CookieB
         <div className="cookie-actions">
           <button className="btn btn-primary" onClick={acceptAll} disabled={saving}>
             {saving ? 'Saving…' : 'Accept All'}
+          </button>
+          <button className="btn btn-primary" style={{ background: 'var(--muted, #64748b)', color: '#fff' }} onClick={rejectAll} disabled={saving}>
+            {saving ? 'Saving…' : 'Reject All'}
           </button>
           {!expanded ? (
             <button className="btn btn-ghost" onClick={() => setExpanded(true)}>

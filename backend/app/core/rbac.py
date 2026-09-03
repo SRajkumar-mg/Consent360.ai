@@ -1,5 +1,6 @@
 PERM_DASHBOARD = "dashboard.view"
 PERM_CUSTOMER_VIEW = "customer.view"
+PERM_CUSTOMER_MANAGE = "customer.manage"
 PERM_CONSENT_VIEW = "consent.view"
 PERM_CONSENT_MANAGE = "consent.manage"
 PERM_PURPOSE_VIEW = "purpose.view"
@@ -16,6 +17,7 @@ PERM_CONTEXT_USE = "context.use"
 ALL_PERMISSIONS = [
     PERM_DASHBOARD,
     PERM_CUSTOMER_VIEW,
+    PERM_CUSTOMER_MANAGE,
     PERM_CONSENT_VIEW,
     PERM_CONSENT_MANAGE,
     PERM_PURPOSE_VIEW,
@@ -32,6 +34,16 @@ ALL_PERMISSIONS = [
 
 ROLE_PERMISSIONS: dict[str, list[str]] = {
     "admin": ALL_PERMISSIONS,
+    "consent_manager": [
+        PERM_DASHBOARD,
+        PERM_CUSTOMER_VIEW,
+        PERM_CUSTOMER_MANAGE,
+        PERM_CONSENT_VIEW,
+        PERM_CONSENT_MANAGE,
+        PERM_PURPOSE_VIEW,
+        PERM_POLICY_VIEW,
+        PERM_AUDIT_VIEW,
+    ],
     "viewer": [
         PERM_DASHBOARD,
         PERM_CUSTOMER_VIEW,
@@ -43,6 +55,7 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
     "jobhub_admin": [
         PERM_DASHBOARD,
         PERM_CUSTOMER_VIEW,
+        PERM_CUSTOMER_MANAGE,
         PERM_CONSENT_VIEW,
         PERM_CONSENT_MANAGE,
         PERM_PURPOSE_VIEW,
@@ -51,6 +64,7 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
     "codex_admin": [
         PERM_DASHBOARD,
         PERM_CUSTOMER_VIEW,
+        PERM_CUSTOMER_MANAGE,
         PERM_CONSENT_VIEW,
         PERM_CONSENT_MANAGE,
         PERM_PURPOSE_VIEW,
@@ -59,6 +73,7 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
     "skilllearn_admin": [
         PERM_DASHBOARD,
         PERM_CUSTOMER_VIEW,
+        PERM_CUSTOMER_MANAGE,
         PERM_CONSENT_VIEW,
         PERM_CONSENT_MANAGE,
         PERM_PURPOSE_VIEW,
@@ -68,6 +83,7 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
 
 ROLE_DESCRIPTIONS = {
     "admin": "Full access to all platform features",
+    "consent_manager": "Manages customer consents and audit trails",
     "viewer": "Read-only access to all data",
     "jobhub_admin": "Manages JobHub organization consents and customers",
     "codex_admin": "Manages Codex organization consents and customers",

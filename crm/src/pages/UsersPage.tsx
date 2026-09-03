@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom'
 import { consentApi, crmApi, getErrorMessage } from '../api'
 import { CookieBanner } from '../components/CookieBanner'
 import { COOKIE_CONSENT_KEY, CRM_LANG_KEY } from '../languages'
+import { emitBannerEvent, initConsentGate, syncConsentState } from '../consentGate'
 
 const AGE_VERIFIED_KEY = 'jobhub_age_verified'
 import type { CrmCustomer } from '../types'
@@ -85,6 +86,10 @@ export function UsersPage() {
   }, [])
 
   useEffect(() => {
+    initConsentGate()
+  }, [])
+
+  useEffect(() => {
     if (localStorage.getItem(AGE_VERIFIED_KEY) !== 'true') {
       setError('Age verification required — please log in again and confirm you are 18 or older')
       setBannerCustomerId(null)
@@ -107,16 +112,34 @@ export function UsersPage() {
 
   const acceptAllCookies = async (lang: string) => {
     const categories = { necessary: true, functional: true, analytics: true, advertising: true }
-    localStorage.setItem(COOKIE_CONSENT_KEY, JSON.stringify({ all: true, categories, at: Date.now() }))
+    localStorage.setItem(COOKIE_CONSENT_KEY, JSON.stringify({ all: true, categories, at: Date.now(), source: 'banner' }))
     localStorage.setItem(CRM_LANG_KEY, lang)
+    emitBannerEvent('ACCEPT_ALL', { language: lang })
+    syncConsentState()
+    await persistPrefs(lang, categories)
+    setBannerCustomerId(null)
+  }
+
+  const rejectAllCookies = async (lang: string) => {
+    const categories = { necessary: true, functional: false, analytics: false, advertising: false }
+    localStorage.setItem(COOKIE_CONSENT_KEY, JSON.stringify({ all: false, categories, at: Date.now(), source: 'banner' }))
+    localStorage.setItem(CRM_LANG_KEY, lang)
+    emitBannerEvent('REJECT_ALL', { language: lang })
+    syncConsentState()
     await persistPrefs(lang, categories)
     setBannerCustomerId(null)
   }
 
   const saveCookiePrefs = async (lang: string, categories: Record<string, boolean>) => {
-    const cats = { ...categories, necessary: true }
-    localStorage.setItem(COOKIE_CONSENT_KEY, JSON.stringify({ all: false, categories: cats, at: Date.now() }))
+    const cats: Record<string, boolean> = { ...categories, necessary: true }
+    localStorage.setItem(COOKIE_CONSENT_KEY, JSON.stringify({ all: false, categories: cats, at: Date.now(), source: 'banner' }))
     localStorage.setItem(CRM_LANG_KEY, lang)
+    if (cats.functional || cats.analytics || cats.advertising) {
+      emitBannerEvent('GRANULAR_DECISION', { language: lang, category: Object.keys(cats).filter((k) => cats[k] === true).join(',') })
+    } else {
+      emitBannerEvent('REJECT_ALL', { language: lang })
+    }
+    syncConsentState()
     await persistPrefs(lang, cats)
     setBannerCustomerId(null)
   }
@@ -378,8 +401,9 @@ export function UsersPage() {
       {error && <div className="jhub-error-toast">{error}</div>}
 
       {bannerCustomerId != null && (
-        <CookieBanner customerId={bannerCustomerId} onAcceptAll={acceptAllCookies} onSave={saveCookiePrefs} />
+        <CookieBanner customerId={bannerCustomerId} onAcceptAll={acceptAllCookies} onRejectAll={rejectAllCookies} onSave={saveCookiePrefs} />
       )}
     </div>
   )
 }
+

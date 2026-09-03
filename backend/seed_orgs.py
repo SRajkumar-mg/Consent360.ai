@@ -1,6 +1,7 @@
 """Seed organizations and their users."""
 import sys
-sys.path.insert(0, r"C:\Users\RajkumarS\Downloads\consenthub\Default Project\backend")
+import os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from app.core.database import SessionLocal
 from app.core.security import hash_password

@@ -28,7 +28,7 @@ class Settings(BaseSettings):
 
     # Cross-app URLs: the CRM portal (8005) hands customers to the consent
     # portal (5173) and receives them back after consent management.
-    CONSENT_PORTAL_URL: str = "http://localhost:5173"
+    CONSENT_PORTAL_URL: str = "http://localhost:8005"
     CRM_PORTAL_URL: str = "http://localhost:8005"
 
     # Consent platform API used by the standalone CRM backend service (8001).

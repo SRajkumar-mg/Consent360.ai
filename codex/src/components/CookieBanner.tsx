@@ -17,7 +17,7 @@ const CATEGORY_META = [
 
 const DEFAULT_CATS: Record<string, boolean> = {
   necessary: true,
-  functional: true,
+  functional: false,
   analytics: false,
   advertising: false,
 }
@@ -99,6 +99,9 @@ export function CookieBanner({ customerId, onClose }: CookieBannerProps) {
         <div className="consent-banner-actions">
           <button className="btn btn-primary" disabled={saving} onClick={() => save({ ...ALL_CATS })}>
             {saving ? 'Saving…' : 'Accept All'}
+          </button>
+          <button className="btn btn-primary" style={{ background: 'var(--muted, #64748b)', color: '#fff' }} disabled={saving} onClick={() => save({ necessary: true, functional: false, analytics: false, advertising: false })}>
+            {saving ? 'Saving…' : 'Reject All'}
           </button>
           {showOptions ? (
             <button className="btn btn-ghost" disabled={saving} onClick={() => save({ ...cats, necessary: true })}>

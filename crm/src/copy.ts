@@ -2,6 +2,7 @@ export interface BannerCopy {
   bannerTitle: string
   bannerText: string
   acceptAll: string
+  rejectAll: string
   moreOptions: string
   modalTitle: string
   chooseLanguage: string
@@ -27,6 +28,7 @@ export const BANNER_COPY: Record<string, BannerCopy> = {
     bannerText:
       'We and our partners use cookies to keep this portal secure, remember your preferences, and understand how it is used. Manage your choices below.',
     acceptAll: 'Accept consent',
+    rejectAll: 'Reject All',
     moreOptions: 'More options',
     modalTitle: 'Consent preferences',
     chooseLanguage: 'Choose language',
@@ -48,6 +50,7 @@ export const BANNER_COPY: Record<string, BannerCopy> = {
     bannerText:
       'இந்த போர்ட்டலைப் பாதுகாப்பாக வைத்திருக்கவும், உங்கள் விருப்பங்களை நினைவில் வைக்கவும், அது எவ்வாறு பயன்படுத்தப்படுகிறது என்பதைப் புரிந்துகொள்ளவும் நாங்கள் குக்கீகளைப் பயன்படுத்துகிறோம். உங்கள் தேர்வுகளை கீழே நிர்வகிக்கவும்.',
     acceptAll: 'சம்மதத்தை ஏற்கவும்',
+    rejectAll: 'அனைத்தையும் நிராகரி',
     moreOptions: 'மேலும் விருப்பங்கள்',
     modalTitle: 'சம்மத விருப்பங்கள்',
     chooseLanguage: 'மொழியைத் தேர்ந்தெடுக்கவும்',
@@ -69,6 +72,7 @@ export const BANNER_COPY: Record<string, BannerCopy> = {
     bannerText:
       'हम इस पोर्टल को सुरक्षित रखने, आपकी प्राथमिकताओं को याद रखने और यह समझने के लिए कुकीज़ का उपयोग करते हैं कि इसका उपयोग कैसे किया जाता है। अपनी पसंद नीचे प्रबंधित करें।',
     acceptAll: 'सहमति स्वीकार करें',
+    rejectAll: 'सभी अस्वीकार करें',
     moreOptions: 'अधिक विकल्प',
     modalTitle: 'सहमति प्राथमिकताएं',
     chooseLanguage: 'भाषा चुनें',
@@ -90,6 +94,7 @@ export const BANNER_COPY: Record<string, BannerCopy> = {
     bannerText:
       'ಈ ಪೋರ್ಟಲ್ ಅನ್ನು ಸುರಕ್ಷಿತವಾಗಿಡಲು, ನಿಮ್ಮ ಆದ್ಯತೆಗಳನ್ನು ನೆನಪಿಡಲು ಮತ್ತು ಅದನ್ನು ಹೇಗೆ ಬಳಸಲಾಗುತ್ತದೆ ಎಂಬುದನ್ನು ಅರ್ಥಮಾಡಿಕೊಳ್ಳಲು ನಾವು ಕುಕೀಗಳನ್ನು ಬಳಸುತ್ತೇವೆ. ನಿಮ್ಮ ಆಯ್ಕೆಗಳನ್ನು ಕೆಳಗೆ ನಿರ್ವಹಿಸಿ.',
     acceptAll: 'ಸಮ್ಮತಿಯನ್ನು ಸ್ವೀಕರಿಸಿ',
+    rejectAll: 'ಎಲ್ಲವನ್ನು ತಿರಸ್ಕರಿಸಿ',
     moreOptions: 'ಹೆಚ್ಚಿನ ಆಯ್ಕೆಗಳು',
     modalTitle: 'ಸಮ್ಮತಿ ಆದ್ಯತೆಗಳು',
     chooseLanguage: 'ಭಾಷೆ ಆಯ್ಕೆಮಾಡಿ',
@@ -111,6 +116,7 @@ export const BANNER_COPY: Record<string, BannerCopy> = {
     bannerText:
       'ഈ പോർട്ടൽ സുരക്ഷിതമായി സൂക്ഷിക്കുന്നതിനും നിങ്ങളുടെ മുൻഗണനകൾ ഓർമ്മിക്കുന്നതിനും അത് എങ്ങനെ ഉപയോഗിക്കുന്നു എന്ന് മനസ്സിലാക്കുന്നതിനും ഞങ്ങൾ കുക്കികൾ ഉപയോഗിക്കുന്നു. നിങ്ങളുടെ തിരഞ്ഞെടുപ്പുകൾ ചുവടെ നിയന്ത്രിക്കുക.',
     acceptAll: 'സമ്മതം സ്വീകരിക്കുക',
+    rejectAll: 'എല്ലാം നിരാകരിക്കുക',
     moreOptions: 'കൂടുതൽ ഓപ്ഷനുകൾ',
     modalTitle: 'സമ്മത മുൻഗണനകൾ',
     chooseLanguage: 'ഭാഷ തിരഞ്ഞെടുക്കുക',
@@ -132,6 +138,7 @@ export const BANNER_COPY: Record<string, BannerCopy> = {
     bannerText:
       'ఈ పోర్టల్‌ను సురక్షితంగా ఉంచడానికి, మీ ప్రాధాన్యతలను గుర్తుంచుకోవడానికి మరియు దానిని ఎలా ఉపయోగిస్తున్నారో అర్థం చేసుకోవడానికి మేము కుకీలను ఉపయోగిస్తాము. మీ ఎంపికలను క్రింద నిర్వహించండి.',
     acceptAll: 'సమ్మతిని ఆమోదించండి',
+    rejectAll: 'అన్నీ తిరస్కరించండి',
     moreOptions: 'మరిన్ని ఎంపికలు',
     modalTitle: 'సమ్మతి ప్రాధాన్యతలు',
     chooseLanguage: 'భాషను ఎంచుకోండి',
@@ -153,6 +160,7 @@ export const BANNER_COPY: Record<string, BannerCopy> = {
     bannerText:
       'এই পোর্টালকে নিরাপদ রাখতে, আপনার পছন্দগুলি মনে রাখতে এবং এটি কীভাবে ব্যবহৃত হয় তা বুঝতে আমরা এবং আমাদের অংশীদাররা কুকি ব্যবহার করি। নিচে আপনার পছন্দগুলি পরিচালনা করুন।',
     acceptAll: 'সম্মতি গ্রহণ করুন',
+    rejectAll: 'সব প্রত্যাখ্যান করুন',
     moreOptions: 'আরও বিকল্প',
     modalTitle: 'সম্মতি পছন্দসমূহ',
     chooseLanguage: 'ভাষা নির্বাচন করুন',
@@ -174,6 +182,7 @@ export const BANNER_COPY: Record<string, BannerCopy> = {
     bannerText:
       'આ પોર્ટલને સુરક્ષિત રાખવા, તમારી પસંદગીઓ યાદ રાખવા અને તેનો કેવી રીતે ઉપયોગ થાય છે તે સમજવા માટે અમે અને અમારા ભાગીદારો કૂકીઝનો ઉપયોગ કરીએ છીએ. નીચે તમારી પસંદગીઓ મેનેજ કરો.',
     acceptAll: 'સંમતિ સ્વીકારો',
+    rejectAll: 'બધું અસ્વીકારો',
     moreOptions: 'વધુ વિકલ્પો',
     modalTitle: 'સંમતિ પસંદગીઓ',
     chooseLanguage: 'ભાષા પસંદ કરો',
@@ -195,6 +204,7 @@ export const BANNER_COPY: Record<string, BannerCopy> = {
     bannerText:
       'या पोर्टलने सुरक्षित ठेवण्यासाठी, तुमच्या प्राधान्ये लक्षात ठेवण्यासाठी आणि त्याचा कसा वापर होतो हे समजून घेण्यासाठी आम्ही आणि आमचे भागीदार कुकीज वापरतो. खाली तुमच्या निवडी व्यवस्थापित करा.',
     acceptAll: 'संमती स्वीकारा',
+    rejectAll: 'सर्व नकारा',
     moreOptions: 'अधिक पर्याय',
     modalTitle: 'संमती प्राधान्ये',
     chooseLanguage: 'भाषा निवडा',
@@ -216,6 +226,7 @@ export const BANNER_COPY: Record<string, BannerCopy> = {
     bannerText:
       'ਇਸ ਪੋਰਟਲ ਨੂੰ ਸੁਰੱਖਿਅਤ ਰੱਖਣ, ਤੁਹਾਡੀਆਂ ਤਰਜੀਹਾਂ ਯਾਦ ਰੱਖਣ ਅਤੇ ਇਸ ਦੀ ਵਰਤੋਂ ਕਿਵੇਂ ਹੁੰਦੀ ਹੈ ਇਹ ਸਮਝਣ ਲਈ ਅਸੀਂ ਅਤੇ ਸਾਡੇ ਸਾਥੀ ਕੁਕੀਜ਼ ਦੀ ਵਰਤੋਂ ਕਰਦੇ ਹਾਂ। ਹੇਠਾਂ ਆਪਣੀਆਂ ਚੋਣਾਂ ਦਾ ਪ੍ਰਬੰਧਨ ਕਰੋ।',
     acceptAll: 'ਸਹਿਮਤੀ ਸਵੀਕਾਰੋ',
+    rejectAll: 'ਸਭ ਅਸਵੀਕਾਰੋ',
     moreOptions: 'ਹੋਰ ਵਿਕਲਪ',
     modalTitle: 'ਸਹਿਮਤੀ ਤਰਜੀਹਾਂ',
     chooseLanguage: 'ਭਾਸ਼ਾ ਚੁਣੋ',
@@ -237,6 +248,7 @@ export const BANNER_COPY: Record<string, BannerCopy> = {
     bannerText:
       'ଏହି ପୋର୍ଟାଲକୁ ସୁରକ୍ଷିତ ରଖିବା, ଆପଣଙ୍କ ପସନ୍ଦ ମନେ ରଖିବା ଏବଂ ଏହା କିପରି ବ୍ୟବହୃତ ହୁଏ ତାହା ବୁଝିବା ପାଇଁ ଆମେ ଏବଂ ଆମର ସାଥୀମାନେ କୁକି ବ୍ୟବହାର କରୁଛୁ। ତଳେ ଆପଣଙ୍କ ପସନ୍ଦ ପରିଚାଳନା କରନ୍ତୁ।',
     acceptAll: 'ସମ୍ମତି ଗ୍ରହଣ କରନ୍ତୁ',
+    rejectAll: 'ସବୁ ଅସ୍ୱୀକାର କରନ୍ତୁ',
     moreOptions: 'ଅଧିକ ବିକଳ୍ପ',
     modalTitle: 'ସମ୍ମତି ପସନ୍ଦ',
     chooseLanguage: 'ଭାଷା ବାଛନ୍ତୁ',
@@ -258,6 +270,7 @@ export const BANNER_COPY: Record<string, BannerCopy> = {
     bannerText:
       'এই পোৰ্টালক সুৰক্ষিত ৰাখিবলৈ, আপোনাৰ প্ৰাথমিকতা মনত ৰাখিবলৈ আৰু ই কেনেকৈ ব্যৱহাৰ কৰা হয় তাক বুজিবলৈ আমি আৰু আমাৰ অংশীদাৰীসকলে কুকি ব্যৱহাৰ কৰো। তলত আপোনাৰ পছন্দ পৰিচালনা কৰক।',
     acceptAll: 'সন্মতি গ্ৰহণ কৰক',
+    rejectAll: 'সকলো অস্বীকাৰ কৰক',
     moreOptions: 'অধিক বিকল্প',
     modalTitle: 'সন্মতি প্ৰাথমিকতা',
     chooseLanguage: 'ভাষা বাছনি কৰক',
@@ -279,6 +292,7 @@ export const BANNER_COPY: Record<string, BannerCopy> = {
     bannerText:
       'यो पोर्टललाई सुरक्षित राख्न, तपाईंको रुचि सम्झन र यसको प्रयोग कसरी हुन्छ बुझ्न हामी र हाम्रा साझेदारहरूले कुकी प्रयोग गर्छौं। तल तपाईंको छनोटहरू व्यवस्थापन गर्नुहोस्।',
     acceptAll: 'सहमति स्वीकार गर्नुहोस्',
+    rejectAll: 'सबै अस्वीकार गर्नुहोस्',
     moreOptions: 'थप विकल्पहरू',
     modalTitle: 'सहमति रुचिहरू',
     chooseLanguage: 'भाषा छान्नुहोस्',
@@ -300,6 +314,7 @@ export const BANNER_COPY: Record<string, BannerCopy> = {
     bannerText:
       'هندس پورٽل خفIpAddress رکڻ، تهنجي پسندياد ياد رکڻ ۽ هن جو کيئن ورتو ٿو سمجھڻ لاءِ اسان ۽ اسان جا ساتھي ڪڪيز استعمال ڪريون ٿا۔ هيٺ تهنجي выбор ڪيو۔',
     acceptAll: 'رضامندي قبول ڪريو',
+    rejectAll: 'aterno corner stor sathi reject ڪريو',
     moreOptions: 'وڌيڪ اختيار',
     modalTitle: 'رضامندي پسندياد',
     chooseLanguage: 'ٻولي چونڊيو',
@@ -321,6 +336,7 @@ export const BANNER_COPY: Record<string, BannerCopy> = {
     bannerText:
       'یہ پورٹل محفوظ رکھن، تُہِنٛد ترجیحات یاد رکھن تٔہِ یہ کیوٛن ورtdf چھ ہاکِن سمجھن، آسن تٔہِ آسن جٕ ساتھی گُکز یِوان چھ استعمال۔ بیَکھر تُہِنٛدChoices نالٕہ کُریو۔',
     acceptAll: 'رضامندی قبول کریو',
+    rejectAll: '.sb reject کریو',
     moreOptions: 'مزید آپشن',
     modalTitle: 'رضامندی ترجیحات',
     chooseLanguage: 'زبان چُنیو',
@@ -342,6 +358,7 @@ export const BANNER_COPY: Record<string, BannerCopy> = {
     bannerText:
       'हा पोर्टल सुरक्षित ठेवण्यासाठी, तुमच्या प्राधान्या लक्षात ठेवण्यासाठी आणि त्याचा कशाने वापर होता हे समजून घेण्यासाठी आमी आणि आमचे भागीदार कुकीज वापरतात। खाली तुमच्या निवडी व्यवस्थापित करा।',
     acceptAll: 'संमती स्वीकारा',
+    rejectAll: 'सभी नाकारा',
     moreOptions: 'अधिक पर्याय',
     modalTitle: 'संमती प्राधान्या',
     chooseLanguage: 'भासा निवडा',
@@ -363,6 +380,7 @@ export const BANNER_COPY: Record<string, BannerCopy> = {
     bannerText:
       'ई पोर्टल के सुरक्षित राखय लेल, अहाँक प्राथमिकता याद राखय लेल आउर एकर प्रयोग केना होइछ बुझय लेल हम आउर हमर साझेदार कुकीज प्रयोग करैत छैत। नीचे अहाँक छनोट प्रबंधित करू।',
     acceptAll: 'सहमति स्वीकार करू',
+    rejectAll: 'सबै अस्वीकार करू',
     moreOptions: 'बेसी विकल्प',
     modalTitle: 'सहमति प्राथमिकता',
     chooseLanguage: 'भाषा चुनू',
@@ -384,6 +402,7 @@ export const BANNER_COPY: Record<string, BannerCopy> = {
     bannerText:
       'एहं पोर्टल ने सुरक्षित राखने, थाहरी तरजीहां याद राखने ते इहं किवें वर्ता जांदा ऐ समझन लई असां ते साडे साथी कुकीज दी वरता करंदे आ। थल्लें थाहरी छनोट संभालो।',
     acceptAll: 'सहमती कबूल करो',
+    rejectAll: 'सब अस्वीकार करो',
     moreOptions: 'बै विकल्प',
     modalTitle: 'सहमती तरजीहां',
     chooseLanguage: 'भासा चुनो',
@@ -405,6 +424,7 @@ export const BANNER_COPY: Record<string, BannerCopy> = {
     bannerText:
        `एन पोर्टलखौ निरापत दं निं मन'नि सिफार आ बेनिखौ गिबि गिबियै गोल मिथिम आमोनि आ आमनि साफायखौनो कुकिज बाहाय मोन थायो। लाहाय निं गिबिखौ बिजারबाय।`,
     acceptAll: 'सिफारसिं बिबोन्थ',
+    rejectAll: 'सबै नंगौ',
     moreOptions: 'गोबां बिबर',
     modalTitle: 'सिफारसिं गिबिफोर',
     chooseLanguage: 'गिबि सिनाय',
@@ -426,6 +446,7 @@ export const BANNER_COPY: Record<string, BannerCopy> = {
     bannerText:
       'ᱱᱮᱭᱟᱜ ᱤᱞᱦᱚᱨ ᱫᱚᱨᱚᱲᱚ ᱠᱩᱴᱤ ᱵᱟᱹᱨᱚᱜᱚᱢ ᱨᱮ ᱞᱟᱹᱜᱚᱠᱟ ᱥᱚ ᱵᱟᱛᱟᱣᱚ ᱠᱚ ᱟᱢᱚᱱᱚ ᱞᱟᱹᱜᱚᱠᱟ ᱦᱮᱱᱚ ᱢᱮᱱᱟᱜᱼ ᱤᱚᱱ ᱫᱚᱨᱚᱲᱚ ᱥᱮ ᱫᱚᱨᱚᱲᱚ ᱥᱟᱹᱜᱷᱟᱹᱨ ᱞᱟᱹᱜᱚᱠᱟ ᱛᱮ ᱰᱩᱨᱤᱭᱚᱢ ᱦᱚᱸ',
     acceptAll: 'ᱥᱮᱹᱡᱚᱢᱰᱤ ᱥᱩᱠᱷᱟᱨᱚ',
+    rejectAll: 'ᱡᱟᱨᱮ ᱵᱟᱰᱚ',
     moreOptions: 'ᱤᱧᱟᱢ ᱵᱤᱠᱚᱸ',
     modalTitle: 'ᱥᱮᱹᱡᱚᱢᱰᱤ ᱥᱟᱹᱜᱷᱟᱹᱨ',
     chooseLanguage: 'ᱯᱚᱨᱚᱢ ᱵᱟᱪᱷᱟᱨᱚᱢ',
@@ -447,6 +468,7 @@ export const BANNER_COPY: Record<string, BannerCopy> = {
     bannerText:
       'মই অমুক অমুকনা কুকী শিজিন্নরে, তমরী প্রেফারেন্স খুদম মরুফ্তাহনবা অমুক অমুকনা শক্তগন লৈরিবা ঙমশিন্নরে।',
     acceptAll: 'অমুকতা লৈরবা',
+    rejectAll: 'সকলো থিংবা',
     moreOptions: 'অহেনবা অপশন',
     modalTitle: 'অমুকতা প্রেফারেন্স',
     chooseLanguage: 'লুই খনবা',
@@ -468,6 +490,7 @@ export const BANNER_COPY: Record<string, BannerCopy> = {
     bannerText:
       'अस्माभिः सह भागिदारैः कुकीस् व्यवहृत्यन्ते — एतत् पोर्टलं सुरक्षितं कर्तुं, भवतः प्राथमिकताः स्मर्तुं, एतस्य प्रयोगं ज्ञातुं च। अधः स्वविकल्पान् प्रबन्धयतु।',
     acceptAll: 'सम्मतिं स्वीकुरुत',
+    rejectAll: 'सर्वाणि परित्यजतु',
     moreOptions: 'अधिक विकल्पाः',
     modalTitle: 'सम्मति प्राथमिकताः',
     chooseLanguage: 'भाषां वृणोतु',
@@ -489,6 +512,7 @@ export const BANNER_COPY: Record<string, BannerCopy> = {
     bannerText:
       'ہم اور ہمارے پارٹنر اس پورٹل کو محفوظ رکھنے، آپ کی ترجیحات یاد رکھنے اور اس کے استعمال کو سمجھنے کے لیے کوکیز استعمال کرتے ہیں۔ نیچے اپنے انتخابات کا انتظام کریں۔',
     acceptAll: 'رضا مندی قبول کریں',
+    rejectAll: 'سب رد کریں',
     moreOptions: 'مزید اختیارات',
     modalTitle: 'رضا مندی کی ترجیحات',
     chooseLanguage: 'زبان منتخب کریں',

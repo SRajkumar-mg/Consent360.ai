@@ -9,15 +9,16 @@ export function LoginPage() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
-  const [ageVerified, setAgeVerified] = useState(true)
+  const [tosAccepted, setTosAccepted] = useState(false)
+  const [ageAcknowledged, setAgeAcknowledged] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     setError('')
-    if (!ageVerified) {
-      setError('You must confirm you are 18 years or older to use JobHub')
+    if (!tosAccepted) {
+      setError('You must accept the Terms of Service to continue')
       return
     }
     if (!name.trim()) { setError('Please enter your name'); return }
@@ -26,7 +27,7 @@ export function LoginPage() {
     if (phone.trim() && digits.length !== 10) { setError('Please enter a valid 10-digit mobile number'); return }
     setLoading(true)
     try {
-      localStorage.setItem(AGE_VERIFIED_KEY, 'true')
+      localStorage.setItem(AGE_VERIFIED_KEY, String(ageAcknowledged))
       const res = await crmApi.login({
         name: name.trim(),
         email: email.trim(),
@@ -75,18 +76,29 @@ export function LoginPage() {
           <label className="age-verify-row">
             <input
               type="checkbox"
-              checked={ageVerified}
+              checked={tosAccepted}
               onChange={(e) => {
-                setAgeVerified(e.target.checked)
+                setTosAccepted(e.target.checked)
                 if (e.target.checked) setError('')
               }}
               className="age-verify-checkbox"
             />
             <span className="age-verify-text">
-              I confirm I am <strong>18 years or older</strong> and agree to the Privacy Policy and Terms of Service
+              I agree to the <strong>Terms of Service</strong> and <strong>Privacy Policy</strong>
             </span>
           </label>
-          <button className="btn btn-primary btn-lg" disabled={loading || !ageVerified}>
+          <label className="age-verify-row">
+            <input
+              type="checkbox"
+              checked={ageAcknowledged}
+              onChange={(e) => setAgeAcknowledged(e.target.checked)}
+              className="age-verify-checkbox"
+            />
+            <span className="age-verify-text">
+              I confirm I am <strong>18 years or older</strong>
+            </span>
+          </label>
+          <button className="btn btn-primary btn-lg" disabled={loading || !tosAccepted}>
             {loading ? 'Signing in…' : 'Get Started'}
           </button>
         </form>

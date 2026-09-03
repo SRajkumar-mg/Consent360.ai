@@ -4,7 +4,7 @@ import { usePageTitle } from '../hooks/usePageTitle'
 import { Consent360Logo } from './Logo'
 import { Chatbot } from './Chatbot'
 import {
-  IconAdmin, IconApi, IconAudit, IconCustomers, IconDashboard, IconLogout, IconPolicy, IconPurpose,
+  IconAdmin, IconAlert, IconApi, IconAudit, IconCustomers, IconDashboard, IconInbox, IconLogout, IconPolicy, IconPurpose,
   IconShield,
 } from './icons'
 
@@ -71,6 +71,23 @@ export function Layout({ children }: { children: React.ReactNode }) {
               </Link>
               <Link to="/organizations" className={`nav-item ${pathname.startsWith('/organizations') ? 'active' : ''}`}>
                 <IconShield /> <span>Organizations</span>
+              </Link>
+            </>
+          )}
+          {(hasPermission('purpose.view') || hasPermission('consent.manage')) && (
+            <>
+              <div className="nav-group">Compliance</div>
+              <Link to="/notices" className={`nav-item ${pathname.startsWith('/notices') ? 'active' : ''}`}>
+                <IconPolicy /> <span>Notices</span>
+              </Link>
+              <Link to="/rights-requests" className={`nav-item ${pathname.startsWith('/rights-requests') ? 'active' : ''}`}>
+                <IconInbox /> <span>Rights Requests</span>
+              </Link>
+              <Link to="/grievances" className={`nav-item ${pathname.startsWith('/grievances') ? 'active' : ''}`}>
+                <IconAlert /> <span>Grievances</span>
+              </Link>
+              <Link to="/tenant-settings" className={`nav-item ${pathname.startsWith('/tenant-settings') ? 'active' : ''}`}>
+                <IconAdmin /> <span>Tenant Settings</span>
               </Link>
             </>
           )}

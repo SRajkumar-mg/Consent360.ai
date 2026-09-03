@@ -143,7 +143,7 @@ python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 | `CONTEXT_EXPIRE_MINUTES` | `15` | Integration context token lifetime |
 | `INTEGRATION_API_KEY` | `dev-demo-integration-key-2026` | Key the business app uses to call the integration API |
 | `SEED_ADMIN_USERNAME` | `admin` | Seeded admin username |
-| `SEED_ADMIN_PASSWORD` | `Admin@1234` | Seeded admin password |
+| `SEED_ADMIN_PASSWORD` | *(random at generation)* | Seeded admin password — set via env; generated randomly under `ENVIRONMENT=production` |
 
 ---
 
@@ -180,20 +180,22 @@ Optional: set `VITE_INTEGRATION_API_KEY` in `frontend/.env` if you changed the b
 
 ## Demo accounts
 
-There are exactly **two roles**:
+A local/dev seed (`backend/seed.py`) creates demo accounts so the platform looks functional. In
+production (`ENVIRONMENT=production`) the seed **structurally refuses** to create demo accounts or
+demo data — it provisions only the single admin user with a randomly generated, must-rotate password.
+Do not publish the demo credentials; run the seed locally if you want demo data.
 
-- **Admin** — view-only oversight across the whole platform plus the ability to change purposes,
-  processing rules and policy. Cannot grant, deny or withdraw customer consents.
-- **Consent Manager** — manages customer consent and audit trails day to day.
+| Username | Role |
+| --- | --- |
+| `admin` | Admin |
+| `privacy.officer` | Admin |
+| `data.steward` | Admin |
+| `customer.service` | Consent Manager |
+| `auditor` | Consent Manager |
+| `readonly` | Consent Manager |
 
-| Username | Password | Role |
-| --- | --- | --- |
-| `admin` | `Admin@1234` | Admin |
-| `privacy.officer` | `Privacy@1234` | Admin |
-| `data.steward` | `Steward@1234` | Admin |
-| `customer.service` | `Service@1234` | Consent Manager |
-| `auditor` | `Auditor@1234` | Consent Manager |
-| `readonly` | `Readonly@1234` | Consent Manager |
+*The passwords for these local demo accounts are set inside `backend/seed.py` and are only seeded in
+non-production environments.*
 
 ---
 

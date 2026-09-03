@@ -121,6 +121,28 @@ export const policiesApi = {
 
 export const dashboardApi = {
   get: () => api.get<DashboardResponse>('/dashboard'),
+  kpis: () => api.get<{ kpis: Record<string, KpiValue>; generated_at: string }>('/dashboard/kpis'),
+  kpiTrends: (kpiId?: string, days = 90) =>
+    api.get<{ count: number; points: KpiPoint[] }>('/dashboard/kpi-trends', {
+      params: { kpi_id: kpiId, days },
+    }),
+}
+
+export interface KpiValue {
+  value: number
+  metric: string
+  name: string
+  details?: Record<string, number>
+}
+
+export interface KpiPoint {
+  kpi_id: string
+  kpi_name: string
+  period: string
+  period_start: string
+  period_end: string
+  value: number
+  details?: Record<string, number>
 }
 
 export const adminApi = {

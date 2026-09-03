@@ -15,6 +15,11 @@ import { AdministrationPage } from './pages/Administration'
 import { OrganizationsPage } from './pages/Organizations'
 import { ApiReferencePage } from './pages/ApiReference'
 import { ContextLandingPage } from './pages/ContextLanding'
+import { PortalConsentPage } from './pages/PortalConsent'
+import { TenantSettingsPage } from './pages/TenantSettings'
+import { NoticesPage } from './pages/Notices'
+import { RightsRequestsPage } from './pages/RightsRequests'
+import { GrievancesPage } from './pages/Grievances'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -40,6 +45,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/portal/consent" element={<PortalConsentPage />} />
             <Route path="/dashboard" element={<Shell><DashboardPage /></Shell>} />
             <Route path="/customers" element={<Shell><CustomersPage /></Shell>} />
             <Route path="/customers/:customerId" element={<Shell><CustomerConsentPage /></Shell>} />
@@ -51,6 +57,10 @@ export default function App() {
             <Route path="/administration" element={<Shell><AdministrationPage /></Shell>} />
             <Route path="/organizations" element={<Shell><OrganizationsPage /></Shell>} />
             <Route path="/api-reference" element={<Shell><ApiReferencePage /></Shell>} />
+            <Route path="/tenant-settings" element={<Shell><TenantSettingsPage /></Shell>} />
+            <Route path="/notices" element={<Shell><NoticesPage /></Shell>} />
+            <Route path="/rights-requests" element={<Shell><RightsRequestsPage /></Shell>} />
+            <Route path="/grievances" element={<Shell><GrievancesPage /></Shell>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>
