@@ -1,0 +1,17 @@
+{
+  "name": "@consent360/sdk",
+  "version": "1.0.0",
+  "description": "Consent360 Integration SDK — manage customer consent via the Consent360 API",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": ["consent", "privacy", "gdpr", "dpdp", "consent360"],
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  }
+}
