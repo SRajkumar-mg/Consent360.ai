@@ -9,13 +9,17 @@ const titles: Record<string, string> = {
   '/audit/chain': 'Audit Ledger',
   '/purposes': 'Consent Purposes',
   '/notices': 'Notice Management',
-  '/tenants': 'Tenant Settings',
+  '/tenants': 'Tenants & API Keys',
+  '/tenants/settings': 'Tenant Settings',
   '/reports': 'Reports',
   '/rights': 'Rights & Erasure',
   '/policies': 'Consent Policies',
   '/administration': 'Administration',
   '/organizations': 'Organizations',
   '/api-reference': 'API & SDKs',
+  '/breaches': 'Breach Register',
+  '/processors': 'Processor Register',
+  '/notifications': 'Notifications',
 }
 
 function matchTitle(pathname: string): string | null {

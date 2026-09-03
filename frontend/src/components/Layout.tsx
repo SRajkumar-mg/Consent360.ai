@@ -4,8 +4,9 @@ import { usePageTitle } from '../hooks/usePageTitle'
 import { Consent360Logo } from './Logo'
 import { Chatbot } from './Chatbot'
 import {
-  IconAdmin, IconApi, IconAudit, IconCustomers, IconDashboard, IconLogout, IconPolicy, IconPurpose,
-  IconShield, IconUsers, IconDownload, IconGlobe,
+  IconAdmin, IconApi, IconAudit, IconBreach, IconCustomers, IconDashboard, IconDownload,
+  IconGlobe, IconKey, IconLogout, IconNotification, IconPolicy, IconProcessor, IconPurpose,
+  IconShield, IconUsers,
 } from './icons'
 
 const NAV = [
@@ -16,9 +17,12 @@ const NAV = [
   { label: 'Audit Explorer', icon: IconAudit, path: '/audit', exact: true, perm: 'audit.view' },
   { label: 'Audit Ledger', icon: IconDownload, path: '/audit/chain', perm: 'audit.view' },
   { label: 'Notices', icon: IconGlobe, path: '/notices', perm: 'notice.manage' },
-  { label: 'Tenant Settings', icon: IconUsers, path: '/tenants', perm: 'tenant.manage' },
+  { label: 'Tenant Settings', icon: IconUsers, path: '/tenants/settings', perm: 'tenant.manage' },
   { label: 'Rights & Erasure', icon: IconShield, path: '/rights', perm: 'rights.manage' },
   { label: 'Reports', icon: IconPurpose, path: '/reports', perm: 'reports.view' },
+  { label: 'Breach Register', icon: IconBreach, path: '/breaches', perm: 'user.manage' },
+  { label: 'Processors', icon: IconProcessor, path: '/processors', perm: 'user.manage' },
+  { label: 'Notifications', icon: IconNotification, path: '/notifications', perm: 'user.manage' },
 ]
 
 function NavItem({ item, pathname }: { item: (typeof NAV)[number]; pathname: string }) {
@@ -70,6 +74,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <div className="nav-group">Administration</div>
               <Link to="/administration" className={`nav-item ${pathname.startsWith('/administration') ? 'active' : ''}`}>
                 <IconAdmin /> <span>Administration</span>
+              </Link>
+              <Link to="/tenants" className={`nav-item ${pathname === '/tenants' ? 'active' : ''}`}>
+                <IconKey /> <span>Tenants &amp; API Keys</span>
               </Link>
               <Link to="/api-reference" className={`nav-item ${pathname.startsWith('/api-reference') ? 'active' : ''}`}>
                 <IconApi /> <span>API &amp; SDKs</span>

@@ -7,9 +7,10 @@ import { useAuth } from '../context/AuthContext'
 import type { Tenant } from '../types'
 
 const EMPTY: Omit<Tenant, 'id'> = {
-  code: '', name: '', dpo_name: '', dpo_contact: '',
+  code: '', name: '', domain: '', dpo_name: '', dpo_contact: '',
   withdraw_url: '', rights_url: '', grievance_url: '', board_complaint_url: '',
   grievance_response_days: 30, default_language: 'en', environment: 'development',
+  is_active: true, created_at: '',
 }
 
 export function TenantSettingsPage() {

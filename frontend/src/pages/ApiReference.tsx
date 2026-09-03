@@ -15,7 +15,7 @@ interface Endpoint {
   jsSdk: string
 }
 
-const API_KEY = import.meta.env.VITE_INTEGRATION_API_KEY as string || 'dev-demo-integration-key-2026'
+const API_KEY = import.meta.env.VITE_INTEGRATION_API_KEY as string || ''
 
 const ENDPOINTS: Endpoint[] = [
   {
@@ -59,23 +59,23 @@ const ctx = await client.createCustomerContext({ name: 'Aarav Patel', email: 'aa
 console.log(ctx.context_token);
 console.log(ctx.ui_url);`,
   },
-  {
+{
     method: 'GET',
     path: '/consent/context/status/{token}',
-    auth: 'Bearer JWT',
-    authBadge: 'jwt',
+    auth: 'X-API-Key',
+    authBadge: 'api-key',
     title: 'Check Context Status',
-    description: 'Check whether a context token is still valid, has been consumed, or has expired. Requires a staff JWT bearer token with the context.use permission.',
+    description: 'Check whether a context token is still valid, has been consumed, or has expired. Requires a tenant-bound integration API key (see R3-01). The API key is tenant-scoped and scoped to the customer\'s tenant.',
     responseBody: `{
   "message": "VALID"   // or "CONSUMED" | "EXPIRED"
 }`,
     curlExample: `curl http://localhost:8000/consent/context/status/eyJhbGci... \\
-  -H "Authorization: Bearer <staff_access_token>"`,
+  -H "X-API-Key: <tenant_api_key>"`,
     pythonSdk: `status = client.get_context_status("eyJhbGci...")
 print(status.status)  # "VALID" | "CONSUMED" | "EXPIRED"`,
     jsSdk: `const status = await client.getContextStatus('eyJhbGci...');
-console.log(status.status);  // "VALID" | "CONSUMED" | "EXPIRED"`,
-  },
+console.log(status.status);  # "VALID" | "CONSUMED" | "EXPIRED"`,
+},
   {
     method: 'DELETE',
     path: '/crm/customers/by-email/{email}',

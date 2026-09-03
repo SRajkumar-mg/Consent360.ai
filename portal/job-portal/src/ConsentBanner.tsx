@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useConsent } from '../useConsent'
+import { useConsent } from './useConsent'
 
 interface ConsentBannerProps {
   purposes: { code: string; name: string; description: string; granted: boolean }[]

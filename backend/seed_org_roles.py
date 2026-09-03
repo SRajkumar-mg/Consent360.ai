@@ -1,19 +1,15 @@
 """Seed org-scoped roles and platform users."""
 
 import sys
-sys.path.insert(0, r"C:\Users\RajkumarS\Downloads\consenthub\Default Project\backend")
+import os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from sqlalchemy import create_engine, text
-from sqlalchemy.orm import sessionmaker
-
+from app.core.database import SessionLocal
+from sqlalchemy import text
 from app.core.rbac import ROLE_PERMISSIONS, ROLE_DESCRIPTIONS
 from app.core.security import hash_password
 from app.core.encryption import hmac_digest
 from app.models.entities import Role, User
-
-DATABASE_URL = "postgresql://postgres:postgres@localhost:5433/consent_platform"
-engine = create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(bind=engine)
 
 
 def seed():

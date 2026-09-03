@@ -1,7 +1,9 @@
 import { useState, useCallback, useRef } from 'react'
 
-const CONSENT360_BASE = 'http://localhost:8000'
-const API_KEY = 'dev-demo-integration-key-2026'
+// R3: the frontend no longer holds a Consent360 integration API key. All
+// Consent360 calls are proxied through the job-portal's own backend, which
+// holds the tenant-bound API key server-side and forwards requests.
+const JOB_PORTAL_BACKEND = 'http://localhost:5180/api'
 
 interface ConsentState {
   contextToken: string | null
@@ -79,10 +81,10 @@ export function useConsent() {
 
   /**
    * Initialize consent. When `email` is provided (an identifying action such as
-   * a real signup or authenticated session), the backend customer context is
-   * created and real consents are loaded. When `email` is absent (pure anonymous
-   * banner), no backend call / customer row is created — we only track intent in
-   * session-scoped localStorage.
+   * a real signup or authenticated session), the job-portal backend proxy is
+   * used to create the Consent360 customer context and load real consents.
+   * When `email` is absent (pure anonymous banner), no backend call / customer
+   * row is created — we only track intent in session-scoped localStorage.
    */
   const initConsent = useCallback(async (email?: string) => {
     setLoading(true)
@@ -106,11 +108,12 @@ export function useConsent() {
         return
       }
 
-      // Real identifying action → create/persist the real customer consent profile.
+      // Real identifying action → create/persist the real customer consent
+      // profile via the job-portal backend proxy (holds the tenant API key).
       const realName = email.split('@')[0]
-      const ctx = await fetchJson(`${CONSENT360_BASE}/consent/customer-context`, {
+      const ctx = await fetchJson(`${JOB_PORTAL_BACKEND}/consent/context`, {
         method: 'POST',
-        headers: { 'X-API-Key': API_KEY, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: realName,
           email,
@@ -119,7 +122,7 @@ export function useConsent() {
       })
 
       const token = ctx.context_token
-      const overview = await fetchJson(`${CONSENT360_BASE}/portal/overview`, {
+      const overview = await fetchJson(`${JOB_PORTAL_BACKEND}/portal/overview`, {
         headers: { 'X-Context-Token': token },
       })
 
@@ -160,7 +163,7 @@ export function useConsent() {
       return
     }
     try {
-      await fetchJson(`${CONSENT360_BASE}/portal/grant`, {
+      await fetchJson(`${JOB_PORTAL_BACKEND}/portal/grant`, {
         method: 'POST',
         headers: {
           'X-Context-Token': state.contextToken,
@@ -191,7 +194,7 @@ export function useConsent() {
       return
     }
     try {
-      await fetchJson(`${CONSENT360_BASE}/portal/withdraw`, {
+      await fetchJson(`${JOB_PORTAL_BACKEND}/portal/withdraw`, {
         method: 'POST',
         headers: {
           'X-Context-Token': state.contextToken,

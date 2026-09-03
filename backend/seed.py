@@ -48,14 +48,15 @@ def seed(db: Session) -> None:
     db.commit()
 
     # Remap legacy roles onto the current roles, then drop the old ones.
+    # Note: "consent_manager" and "auditor" are now first-class roles (see
+    # app.core.rbac) rather than legacy names, so they are intentionally
+    # excluded from this remap table.
     legacy_role_map = {
         "consent_admin": "admin",
         "privacy_officer": "admin",
         "data_steward": "admin",
-        "customer_service": "viewer",
-        "auditor": "viewer",
+        "customer_service": "consent_manager",
         "read_only": "viewer",
-        "consent_manager": "viewer",
         "query_analyst": "viewer",
     }
     for legacy_name, new_name in legacy_role_map.items():
@@ -74,8 +75,12 @@ def seed(db: Session) -> None:
     if db.query(User).count() == 0:
         admin_role = db.query(Role).filter(Role.name == "admin").first()
         viewer_role = db.query(Role).filter(Role.name == "viewer").first()
+        manager_role = db.query(Role).filter(Role.name == "consent_manager").first()
+        auditor_role = db.query(Role).filter(Role.name == "auditor").first()
         if admin_role is None or viewer_role is None:
             raise RuntimeError("admin/viewer roles must exist before seeding users - re-run role seeding or create the roles table")
+        manager_role = manager_role or viewer_role
+        auditor_role = auditor_role or viewer_role
 
         users = [
             User(username=settings.SEED_ADMIN_USERNAME, full_name="System Administrator",
@@ -90,10 +95,10 @@ def seed(db: Session) -> None:
                  password_hash=hash_password("Steward@1234"), role_id=admin_role.id, is_active=True),
             User(username="customer.service", full_name="Kavya Sharma", email="service@consent.local",
                  email_search=hmac_digest("service@consent.local"),
-                 password_hash=hash_password("Service@1234"), role_id=viewer_role.id, is_active=True),
+                 password_hash=hash_password("Service@1234"), role_id=manager_role.id, is_active=True),
             User(username="auditor", full_name="Rahul Verma", email="auditor@consent.local",
                  email_search=hmac_digest("auditor@consent.local"),
-                 password_hash=hash_password("Auditor@1234"), role_id=viewer_role.id, is_active=True),
+                 password_hash=hash_password("Auditor@1234"), role_id=auditor_role.id, is_active=True),
             User(username="readonly", full_name="Inspect User", email="readonly@consent.local",
                  email_search=hmac_digest("readonly@consent.local"),
                  password_hash=hash_password("Readonly@1234"), role_id=viewer_role.id, is_active=True),
@@ -384,22 +389,27 @@ def seed(db: Session) -> None:
         crm_customers = [
             CrmCustomer(name="Aarav Patel", email="aarav.patel@example.com",
                         email_search=hmac_digest("aarav.patel@example.com"), age=31,
+                        aadhar_number="XXXX-XXXX-1234",
                         address="12 MG Road, Bengaluru",
                         phone="+91-98111-22333"),
             CrmCustomer(name="Sanya Iyer", email="sanya.iyer@example.com",
                         email_search=hmac_digest("sanya.iyer@example.com"), age=27,
+                        aadhar_number="XXXX-XXXX-5678",
                         address="45 Anna Salai, Chennai",
                         phone="+91-98222-33444"),
             CrmCustomer(name="Vikram Rao", email="vikram.rao@example.com",
                         email_search=hmac_digest("vikram.rao@example.com"), age=34,
+                        aadhar_number="XXXX-XXXX-9012",
                         address="8 Connaught Place, New Delhi",
                         phone="+91-98333-44555"),
             CrmCustomer(name="Ananya Gupta", email="ananya.gupta@example.com",
                         email_search=hmac_digest("ananya.gupta@example.com"), age=29,
+                        aadhar_number="XXXX-XXXX-3456",
                         address="21 FC Road, Pune",
                         phone="+91-98444-55666"),
             CrmCustomer(name="Meera Krishnan", email="meera.k@example.com",
                         email_search=hmac_digest("meera.k@example.com"), age=42,
+                        aadhar_number="XXXX-XXXX-7890",
                         address="77 Marine Drive, Kochi",
                         phone="+91-98666-77888"),
         ]
