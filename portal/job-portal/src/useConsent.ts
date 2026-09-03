@@ -1,7 +1,6 @@
 import { useState, useCallback, useEffect } from 'react'
 
-const CONSENT360_BASE = 'http://localhost:8000'
-const API_KEY = 'dev-demo-integration-key-2026'
+const JOB_PORTAL_BACKEND = 'http://localhost:5180/api'
 
 interface ConsentState {
   contextToken: string | null
@@ -44,9 +43,9 @@ export function useConsent() {
   const initConsent = useCallback(async (email?: string) => {
     setLoading(true)
     try {
-      const ctx = await fetchJson(`${CONSENT360_BASE}/consent/customer-context`, {
+      const ctx = await fetchJson(`${JOB_PORTAL_BACKEND}/consent/context`, {
         method: 'POST',
-        headers: { 'X-API-Key': API_KEY, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: email?.split('@')[0] || 'Visitor',
           email: email || `visitor-${Date.now()}@careerhub.local`,
@@ -55,7 +54,7 @@ export function useConsent() {
       })
 
       const token = ctx.context_token
-      const overview = await fetchJson(`${CONSENT360_BASE}/portal/overview`, {
+      const overview = await fetchJson(`${JOB_PORTAL_BACKEND}/portal/overview`, {
         headers: { 'X-Context-Token': token },
       })
 
@@ -83,7 +82,7 @@ export function useConsent() {
   const grantPurpose = useCallback(async (code: string) => {
     if (!state.contextToken) return
     try {
-      await fetchJson(`${CONSENT360_BASE}/portal/grant`, {
+      await fetchJson(`${JOB_PORTAL_BACKEND}/portal/grant`, {
         method: 'POST',
         headers: {
           'X-Context-Token': state.contextToken,
@@ -105,7 +104,7 @@ export function useConsent() {
   const withdrawPurpose = useCallback(async (code: string) => {
     if (!state.contextToken) return
     try {
-      await fetchJson(`${CONSENT360_BASE}/portal/withdraw`, {
+      await fetchJson(`${JOB_PORTAL_BACKEND}/portal/withdraw`, {
         method: 'POST',
         headers: {
           'X-Context-Token': state.contextToken,

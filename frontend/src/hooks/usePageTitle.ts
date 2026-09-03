@@ -9,8 +9,12 @@ const titles: Record<string, string> = {
   '/purposes': 'Consent Purposes',
   '/policies': 'Consent Policies',
   '/administration': 'Administration',
+  '/tenants': 'Tenants & API Keys',
   '/organizations': 'Organizations',
   '/api-reference': 'API & SDKs',
+  '/breaches': 'Breach Register',
+  '/processors': 'Processor Register',
+  '/notifications': 'Notifications',
 }
 
 function matchTitle(pathname: string): string | null {

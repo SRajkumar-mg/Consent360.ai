@@ -6,6 +6,7 @@ from app.api.deps import get_org_scope, require_permission
 from app.core.database import get_db
 from app.core.encryption import hmac_digest
 from app.core.rbac import PERM_CUSTOMER_VIEW
+from app.core.utils import get_request_id, log_audit
 from app.models.entities import Customer, User
 from app.schemas.schemas import CustomerOut
 
@@ -34,8 +35,17 @@ def list_customers(
             or like in (c.name or "").lower()
             or like in (c.email or "").lower()
         ]
+        log_audit(db, "BULK_EXPORT", actor_username=user.username,
+                  actor_role=user.role.name if user.role else "",
+                  source_app="UI", reason=f"Customer list view with search: {search}",
+                  request_id=get_request_id(),
+                  metadata={"search": search, "returned_count": len(filtered)})
         return filtered[offset:offset + limit]
     q = q.order_by(Customer.external_id).limit(limit).offset(offset)
+    log_audit(db, "CUSTOMER_LIST", actor_username=user.username,
+              actor_role=user.role.name if user.role else "",
+              source_app="UI", reason="Customer list viewed",
+              request_id=get_request_id())
     return q.all()
 
 

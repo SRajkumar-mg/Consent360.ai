@@ -10,6 +10,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 class LoginRequest(BaseModel):
     username: str = Field(min_length=1, max_length=64)
     password: str = Field(min_length=1, max_length=128)
+    otp_code: Optional[str] = Field(default=None, description="TOTP MFA code if user has MFA enrolled")
 
 
 class TokenResponse(BaseModel):

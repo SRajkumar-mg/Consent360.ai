@@ -12,6 +12,8 @@ PERM_AUDIT_VIEW = "audit.view"
 PERM_USER_MANAGE = "user.manage"
 PERM_INTEGRATION = "integration.use"
 PERM_CONTEXT_USE = "context.use"
+PERM_DPO_VIEW = "dpo.view"
+PERM_AUDITOR_VIEW = "auditor.view"
 
 ALL_PERMISSIONS = [
     PERM_DASHBOARD,
@@ -28,10 +30,21 @@ ALL_PERMISSIONS = [
     PERM_USER_MANAGE,
     PERM_INTEGRATION,
     PERM_CONTEXT_USE,
+    PERM_DPO_VIEW,
+    PERM_AUDITOR_VIEW,
 ]
 
 ROLE_PERMISSIONS: dict[str, list[str]] = {
     "admin": ALL_PERMISSIONS,
+    "consent_manager": [
+        PERM_DASHBOARD,
+        PERM_CUSTOMER_VIEW,
+        PERM_CONSENT_VIEW,
+        PERM_CONSENT_MANAGE,
+        PERM_PURPOSE_VIEW,
+        PERM_POLICY_VIEW,
+        PERM_AUDIT_VIEW,
+    ],
     "viewer": [
         PERM_DASHBOARD,
         PERM_CUSTOMER_VIEW,
@@ -64,14 +77,35 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
         PERM_PURPOSE_VIEW,
         PERM_AUDIT_VIEW,
     ],
+    "dpo": [
+        PERM_DASHBOARD,
+        PERM_CUSTOMER_VIEW,
+        PERM_CONSENT_VIEW,
+        PERM_CONSENT_MANAGE,
+        PERM_PURPOSE_VIEW,
+        PERM_POLICY_VIEW,
+        PERM_AUDIT_VIEW,
+        PERM_DPO_VIEW,
+    ],
+    "auditor": [
+        PERM_DASHBOARD,
+        PERM_CUSTOMER_VIEW,
+        PERM_CONSENT_VIEW,
+        PERM_AUDIT_VIEW,
+        PERM_DPO_VIEW,
+        PERM_AUDITOR_VIEW,
+    ],
 }
 
 ROLE_DESCRIPTIONS = {
     "admin": "Full access to all platform features",
+    "consent_manager": "Manages customer consents and audit trails",
     "viewer": "Read-only access to all data",
     "jobhub_admin": "Manages JobHub organization consents and customers",
     "codex_admin": "Manages Codex organization consents and customers",
     "skilllearn_admin": "Manages SkillLearn organization consents and customers",
+    "dpo": "Data Protection Officer - oversees compliance and data protection",
+    "auditor": "Auditor - reviews access logs and compliance audits",
 }
 
 ORG_SCOPE_MAP = {

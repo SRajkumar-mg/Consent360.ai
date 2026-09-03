@@ -1,0 +1,22 @@
+INFO:     127.0.0.1:50500 - "POST /api/v1/auth/login HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:50501 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60183 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60185 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60187 - "GET /tenants HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60189 - "GET /integration/breaches HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60191 - "GET /integration/processors HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60193 - "GET /notifications HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60195 - "GET /notifications/templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60197 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60199 - "GET /breaches HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60201 - "GET /processors HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60203 - "GET /processors/reports/contract-coverage HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60205 - "GET /notifications/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60207 - "GET /notifications/retry HTTP/1.1" 405 Method Not Allowed
+INFO:     127.0.0.1:51111 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51113 - "GET /processors/reports/contract-coverage HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62460 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52542 - "GET /dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52543 - "GET /dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56447 - "GET /tenants HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59297 - "GET /tenants HTTP/1.1" 200 OK

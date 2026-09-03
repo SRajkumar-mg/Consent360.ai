@@ -1,0 +1,45 @@
+INFO:     127.0.0.1:64396 - "POST /auth/login HTTP/1.1" 422 Unprocessable Entity
+INFO:     127.0.0.1:57480 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:57481 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:57483 - "POST /auth/refresh HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57486 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57482 - "POST /auth/refresh HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57487 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61463 - "GET /data-categories HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50421 - "GET /data-categories HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61160 - "GET /purposes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61464 - "GET /processing-activities HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52062 - "GET /processing-activities HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57295 - "GET /purposes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60873 - "GET /crm/customers/6/consent-preferences HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60876 - "GET /crm/customers/6/consent-preferences HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61601 - "GET /crm/customers/6/consent-preferences HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61604 - "GET /crm/customers/6/consent-preferences HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63775 - "GET /customers?search=&limit=200&offset=0 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49276 - "GET /customers?search=&limit=200&offset=0 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60937 - "GET /customers/CUST-10007 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61163 - "GET /customers/CUST-10007 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50929 - "GET /consents/summary/CUST-10007 HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:51883 - "GET /consents/summary/CUST-10007 HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:58839 - "GET /customers?search=&limit=200&offset=0 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54776 - "GET /customers?search=&limit=200&offset=0 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58530 - "GET /customers/CUST-10001 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53326 - "GET /customers/CUST-10001 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51625 - "GET /consents/summary/CUST-10001 HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:56203 - "GET /consents/summary/CUST-10001 HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:50816 - "GET /customers?search=&limit=200&offset=0 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51872 - "GET /customers?search=&limit=200&offset=0 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64705 - "GET /customers/CUST-3EC189F56B HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63092 - "GET /customers/CUST-3EC189F56B HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52167 - "GET /consents/summary/CUST-3EC189F56B HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:51781 - "GET /consents/summary/CUST-3EC189F56B HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:55430 - "GET /customers?search=&limit=200&offset=0 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64789 - "GET /customers?search=&limit=200&offset=0 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49207 - "GET /processing-activities HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49206 - "GET /data-categories HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52193 - "GET /data-categories HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56213 - "GET /processing-activities HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49205 - "GET /purposes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59730 - "GET /purposes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50806 - "GET /dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61086 - "GET /dashboard HTTP/1.1" 200 OK

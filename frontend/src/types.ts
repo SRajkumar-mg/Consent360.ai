@@ -7,6 +7,7 @@ export interface User {
   role_name: string
   role_permissions: string[]
   is_active: boolean
+  mfa_enabled?: boolean
   last_login_at?: string | null
   created_at: string
 }
@@ -316,4 +317,135 @@ export interface OrganizationDashboard {
   active_consents: number
   consent_summary: { status: string; count: number }[]
   recent_activity: any[]
+}
+
+// ── R3-01: Tenant & API Key types ──────────────────────────────────────────
+export interface Tenant {
+  id: number
+  name: string
+  code: string
+  domain: string
+  default_language: string
+  is_active: boolean
+  created_at: string
+}
+
+export interface ApiKey {
+  id: number
+  tenant_id: number
+  name: string
+  scopes: string
+  created_at: string
+  rotated_at: string | null
+  expires_at: string | null
+  revoked_at: string | null
+  last_used_at: string | null
+  is_active: boolean
+}
+
+export interface ApiKeyCreateResponse {
+  key: string
+  key_info: ApiKey
+}
+
+// ── R3-02: MFA types ───────────────────────────────────────────────────────
+export interface MfaEnrollResponse {
+  secret: string
+  qr_code: string
+  recovery_codes: string[]
+}
+
+// ── R3-06: Notification types ───────────────────────────────────────────────
+export interface NotificationTemplate {
+  id: number
+  tenant_id: number
+  event_type: string
+  channel: string
+  language: string
+  subject: string
+  body: string
+  is_active: boolean
+}
+
+export interface Notification {
+  id: number
+  tenant_id: number
+  event_type: string
+  channel: string
+  language: string
+  reference_type: string
+  reference_id: string
+  subject: string
+  status: string
+  retry_count: number
+  sent_at: string | null
+  delivered_at: string | null
+  created_at: string
+}
+
+// ── R3-07: Processor types ──────────────────────────────────────────────────
+export interface Processor {
+  id: number
+  tenant_id: number
+  name: string
+  type: string
+  country: string
+  contact: string
+  contract_ref: string | null
+  contract_start: string | null
+  contract_end: string | null
+  is_active: boolean
+  created_at: string
+}
+
+export interface ProcessorAlert {
+  id: number
+  processor_id: number
+  alert_type: string
+  status: string
+  retry_count: number
+  sent_at: string | null
+  acknowledged_at: string | null
+  escalated_at: string | null
+  created_at: string
+}
+
+export interface ContractCoverageReport {
+  total_processors: number
+  covered_processors: number
+  coverage_percentage: number
+}
+
+// ── R3-08: Breach types ─────────────────────────────────────────────────────
+export interface Breach {
+  id: number
+  tenant_id: number
+  reference_no: string
+  breach_type: string
+  detected_at: string
+  aware_at: string
+  nature: string
+  extent: string
+  status: string
+  created_at: string
+}
+
+export interface BreachNotification {
+  id: number
+  breach_id: number
+  recipient_type: string
+  channel: string
+  deadline_at: string
+  sent_at: string | null
+  acknowledged_at: string | null
+  status: string
+}
+
+export interface BoardReport {
+  overview: Record<string, unknown>
+  impact: Record<string, unknown>
+  timeline: Record<string, unknown>
+  actions: Record<string, unknown>
+  compliance: Record<string, unknown>
+  next_steps: Record<string, unknown>
 }

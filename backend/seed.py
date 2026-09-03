@@ -8,9 +8,9 @@ from sqlalchemy.orm import Session
 
 from app.core.database import Base, SessionLocal, engine
 from app.core.rbac import ROLE_DESCRIPTIONS, ROLE_PERMISSIONS
+from app.core.encryption import hmac_digest
 from app.core.security import hash_password
 from app.core.config import get_settings
-from app.core.encryption import hmac_digest
 from app.models.entities import (
     Consent,
     ConsentEvidence,
@@ -47,16 +47,14 @@ def seed(db: Session) -> None:
             db.add(Role(name=name, description=ROLE_DESCRIPTIONS.get(name, ""), permissions=perms, is_system=True))
     db.commit()
 
-    # Remap legacy roles onto the current roles, then drop the old ones.
+    # Remap legacy roles onto the two current roles, then drop the old ones.
     legacy_role_map = {
         "consent_admin": "admin",
         "privacy_officer": "admin",
         "data_steward": "admin",
-        "customer_service": "viewer",
-        "auditor": "viewer",
-        "read_only": "viewer",
-        "consent_manager": "viewer",
-        "query_analyst": "viewer",
+        "customer_service": "consent_manager",
+        "auditor": "consent_manager",
+        "read_only": "consent_manager",
     }
     for legacy_name, new_name in legacy_role_map.items():
         legacy = db.query(Role).filter(Role.name == legacy_name).first()
@@ -73,9 +71,8 @@ def seed(db: Session) -> None:
     # ------------------------------------------------------------------ users
     if db.query(User).count() == 0:
         admin_role = db.query(Role).filter(Role.name == "admin").first()
+        manager_role = db.query(Role).filter(Role.name == "consent_manager").first()
         viewer_role = db.query(Role).filter(Role.name == "viewer").first()
-        if admin_role is None or viewer_role is None:
-            raise RuntimeError("admin/viewer roles must exist before seeding users - re-run role seeding or create the roles table")
 
         users = [
             User(username=settings.SEED_ADMIN_USERNAME, full_name="System Administrator",
@@ -90,13 +87,13 @@ def seed(db: Session) -> None:
                  password_hash=hash_password("Steward@1234"), role_id=admin_role.id, is_active=True),
             User(username="customer.service", full_name="Kavya Sharma", email="service@consent.local",
                  email_search=hmac_digest("service@consent.local"),
-                 password_hash=hash_password("Service@1234"), role_id=viewer_role.id, is_active=True),
+                 password_hash=hash_password("Service@1234"), role_id=manager_role.id, is_active=True),
             User(username="auditor", full_name="Rahul Verma", email="auditor@consent.local",
                  email_search=hmac_digest("auditor@consent.local"),
-                 password_hash=hash_password("Auditor@1234"), role_id=viewer_role.id, is_active=True),
+                 password_hash=hash_password("Auditor@1234"), role_id=manager_role.id, is_active=True),
             User(username="readonly", full_name="Inspect User", email="readonly@consent.local",
                  email_search=hmac_digest("readonly@consent.local"),
-                 password_hash=hash_password("Readonly@1234"), role_id=viewer_role.id, is_active=True),
+                 password_hash=hash_password("Readonly@1234"), role_id=manager_role.id, is_active=True),
             User(username="viewer", full_name="View Only", email="viewer@consent.local",
                  email_search=hmac_digest("viewer@consent.local"),
                  password_hash=hash_password("Viewer@1234"), role_id=viewer_role.id, is_active=True),
@@ -351,28 +348,31 @@ def seed(db: Session) -> None:
 
     # ---------------------------------------------------------------- customers
     if db.query(Customer).count() == 0:
-        _customer_specs = [
-            ("CUST-10001", "Aarav Patel", "aarav.patel@example.com", "+91-98111-22333", "ACTIVE"),
-            ("CUST-10002", "Sanya Iyer", "sanya.iyer@example.com", "+91-98222-33444", "ACTIVE"),
-            ("CUST-10003", "Vikram Rao", "vikram.rao@example.com", "+91-98333-44555", "ACTIVE"),
-            ("CUST-10004", "Ananya Gupta", "ananya.gupta@example.com", "+91-98444-55666", "ACTIVE"),
-            ("CUST-10005", "Rohan Desai", "rohan.desai@example.com", "+91-98555-66777", "SUSPENDED"),
-            ("CUST-10006", "Meera Krishnan", "meera.k@example.com", "+91-98666-77888", "ACTIVE"),
-            ("CUST-10007", "Kabir Singh", "kabir.singh@example.com", "+91-98777-88999", "ACTIVE"),
-            ("CUST-10008", "Ishita Bose", "ishita.bose@example.com", "+91-98888-99000", "ACTIVE"),
-        ]
         customers = [
-            Customer(
-                external_id=eid,
-                external_id_search=hmac_digest(eid),
-                name=name,
-                email=email,
-                email_search=hmac_digest(email),
-                phone=phone,
-                status=status,
-                source_app="CRM_APP",
-            )
-            for eid, name, email, phone, status in _customer_specs
+            Customer(external_id="CUST-10001", external_id_search=hmac_digest("CUST-10001"), name="Aarav Patel", email="aarav.patel@example.com",
+                     email_search=hmac_digest("aarav.patel@example.com"),
+                     phone="+91-98111-22333", status="ACTIVE", source_app="CRM_APP"),
+            Customer(external_id="CUST-10002", external_id_search=hmac_digest("CUST-10002"), name="Sanya Iyer", email="sanya.iyer@example.com",
+                     email_search=hmac_digest("sanya.iyer@example.com"),
+                     phone="+91-98222-33444", status="ACTIVE", source_app="CRM_APP"),
+            Customer(external_id="CUST-10003", external_id_search=hmac_digest("CUST-10003"), name="Vikram Rao", email="vikram.rao@example.com",
+                     email_search=hmac_digest("vikram.rao@example.com"),
+                     phone="+91-98333-44555", status="ACTIVE", source_app="CRM_APP"),
+            Customer(external_id="CUST-10004", external_id_search=hmac_digest("CUST-10004"), name="Ananya Gupta", email="ananya.gupta@example.com",
+                     email_search=hmac_digest("ananya.gupta@example.com"),
+                     phone="+91-98444-55666", status="ACTIVE", source_app="CRM_APP"),
+            Customer(external_id="CUST-10005", external_id_search=hmac_digest("CUST-10005"), name="Rohan Desai", email="rohan.desai@example.com",
+                     email_search=hmac_digest("rohan.desai@example.com"),
+                     phone="+91-98555-66777", status="SUSPENDED", source_app="CRM_APP"),
+            Customer(external_id="CUST-10006", external_id_search=hmac_digest("CUST-10006"), name="Meera Krishnan", email="meera.k@example.com",
+                     email_search=hmac_digest("meera.k@example.com"),
+                     phone="+91-98666-77888", status="ACTIVE", source_app="CRM_APP"),
+            Customer(external_id="CUST-10007", external_id_search=hmac_digest("CUST-10007"), name="Kabir Singh", email="kabir.singh@example.com",
+                     email_search=hmac_digest("kabir.singh@example.com"),
+                     phone="+91-98777-88999", status="ACTIVE", source_app="CRM_APP"),
+            Customer(external_id="CUST-10008", external_id_search=hmac_digest("CUST-10008"), name="Ishita Bose", email="ishita.bose@example.com",
+                     email_search=hmac_digest("ishita.bose@example.com"),
+                     phone="+91-98888-99000", status="ACTIVE", source_app="CRM_APP"),
         ]
         db.add_all(customers)
         db.commit()
@@ -380,24 +380,19 @@ def seed(db: Session) -> None:
     # ---------------------------------------------------------- CRM customers
     if db.query(CrmCustomer).count() == 0:
         crm_customers = [
-            CrmCustomer(name="Aarav Patel", email="aarav.patel@example.com",
-                        email_search=hmac_digest("aarav.patel@example.com"), age=31,
+            CrmCustomer(name="Aarav Patel", email="aarav.patel@example.com", email_search=hmac_digest("aarav.patel@example.com"), age=31,
                         aadhar_number="XXXX-XXXX-1234", address="12 MG Road, Bengaluru",
                         phone="+91-98111-22333"),
-            CrmCustomer(name="Sanya Iyer", email="sanya.iyer@example.com",
-                        email_search=hmac_digest("sanya.iyer@example.com"), age=27,
+            CrmCustomer(name="Sanya Iyer", email="sanya.iyer@example.com", email_search=hmac_digest("sanya.iyer@example.com"), age=27,
                         aadhar_number="XXXX-XXXX-5678", address="45 Anna Salai, Chennai",
                         phone="+91-98222-33444"),
-            CrmCustomer(name="Vikram Rao", email="vikram.rao@example.com",
-                        email_search=hmac_digest("vikram.rao@example.com"), age=34,
+            CrmCustomer(name="Vikram Rao", email="vikram.rao@example.com", email_search=hmac_digest("vikram.rao@example.com"), age=34,
                         aadhar_number="XXXX-XXXX-9012", address="8 Connaught Place, New Delhi",
                         phone="+91-98333-44555"),
-            CrmCustomer(name="Ananya Gupta", email="ananya.gupta@example.com",
-                        email_search=hmac_digest("ananya.gupta@example.com"), age=29,
+            CrmCustomer(name="Ananya Gupta", email="ananya.gupta@example.com", email_search=hmac_digest("ananya.gupta@example.com"), age=29,
                         aadhar_number="XXXX-XXXX-3456", address="21 FC Road, Pune",
                         phone="+91-98444-55666"),
-            CrmCustomer(name="Meera Krishnan", email="meera.k@example.com",
-                        email_search=hmac_digest("meera.k@example.com"), age=42,
+            CrmCustomer(name="Meera Krishnan", email="meera.k@example.com", email_search=hmac_digest("meera.k@example.com"), age=42,
                         aadhar_number="XXXX-XXXX-7890", address="77 Marine Drive, Kochi",
                         phone="+91-98666-77888"),
         ]

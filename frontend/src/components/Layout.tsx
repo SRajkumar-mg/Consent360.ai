@@ -4,8 +4,8 @@ import { usePageTitle } from '../hooks/usePageTitle'
 import { Consent360Logo } from './Logo'
 import { Chatbot } from './Chatbot'
 import {
-  IconAdmin, IconApi, IconAudit, IconCustomers, IconDashboard, IconLogout, IconPolicy, IconPurpose,
-  IconShield,
+  IconAdmin, IconApi, IconAudit, IconBreach, IconCustomers, IconDashboard, IconKey,
+  IconLogout, IconNotification, IconPolicy, IconProcessor, IconPurpose, IconShield,
 } from './icons'
 
 const NAV = [
@@ -14,6 +14,9 @@ const NAV = [
   { label: 'Consent Purposes', icon: IconPurpose, path: '/purposes', perm: 'purpose.view' },
   { label: 'Policies', icon: IconPolicy, path: '/policies', perm: 'policy.view' },
   { label: 'Audit Explorer', icon: IconAudit, path: '/audit', perm: 'audit.view' },
+  { label: 'Breach Register', icon: IconBreach, path: '/breaches', perm: 'user.manage' },
+  { label: 'Processors', icon: IconProcessor, path: '/processors', perm: 'user.manage' },
+  { label: 'Notifications', icon: IconNotification, path: '/notifications', perm: 'user.manage' },
 ]
 
 function NavItem({ item, pathname }: { item: (typeof NAV)[number]; pathname: string }) {
@@ -65,6 +68,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <div className="nav-group">Administration</div>
               <Link to="/administration" className={`nav-item ${pathname.startsWith('/administration') ? 'active' : ''}`}>
                 <IconAdmin /> <span>Administration</span>
+              </Link>
+              <Link to="/tenants" className={`nav-item ${pathname.startsWith('/tenants') ? 'active' : ''}`}>
+                <IconKey /> <span>Tenants &amp; API Keys</span>
               </Link>
               <Link to="/api-reference" className={`nav-item ${pathname.startsWith('/api-reference') ? 'active' : ''}`}>
                 <IconApi /> <span>API &amp; SDKs</span>

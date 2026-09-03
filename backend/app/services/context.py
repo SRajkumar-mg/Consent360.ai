@@ -51,9 +51,9 @@ def create_context_for_customer(
 ) -> CustomerContextOut:
     """Identify (or create) the consent-platform Customer and mint a context token.
 
-    Lookup order: explicit ``customer_id`` -> email match (case-insensitive) ->
-    derived external id -> create. Matching by email first reuses the existing
-    Customer reference instead of creating a duplicate for the same person.
+    Every path that produces a portal‑usable token must go through identity
+    verification (R3-05).  If the customer record has no ``identity_verified_at``
+    timestamp, verification is required and a new token must not be issued.
     """
     if customer_id:
         customer = db.query(Customer).filter(Customer.external_id_search == hmac_digest(customer_id)).first()
@@ -92,6 +92,13 @@ def create_context_for_customer(
             customer.phone = phone
         if status:
             customer.status = status
+        # R3-05: If customer exists but is not verified, require verification
+        # before issuing a portal‑usable token.
+        if not customer.identity_verified_at:
+            raise HTTPException(
+                status_code=403,
+                detail="Customer identity must be verified via OTP or fiduciary assertion before a context token can be issued",
+            )
         log_audit(db, "CUSTOMER_UPDATED", actor_username=created_by, source_app=source_app,
                   customer_id=customer.id, customer_external_id=customer.external_id,
                   reason="Customer context refreshed from integration")

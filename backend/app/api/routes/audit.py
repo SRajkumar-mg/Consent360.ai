@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_org_scope, require_permission
 from app.core.database import get_db
 from app.core.rbac import PERM_AUDIT_VIEW
+from app.core.utils import get_request_id, log_audit
 from app.models.entities import AuditLog, Customer, User
 from app.schemas.schemas import AuditEventOut
 
@@ -21,6 +22,13 @@ def list_audit_events(
     db: Session = Depends(get_db),
     user: User = Depends(require_permission(PERM_AUDIT_VIEW)),
 ):
+    log_audit(db, "AUDIT_QUERY", actor_username=user.username,
+              actor_role=user.role.name if user.role else "",
+              source_app="UI", reason="Audit log queried",
+              request_id=get_request_id(),
+              metadata={"customer_name": customer_name, "purpose_code": purpose_code,
+                        "date_from": date_from, "date_to": date_to,
+                        "returned_count": limit})
     scope = get_org_scope(user)
     q = db.query(AuditLog).order_by(AuditLog.created_at.desc())
     if scope:
@@ -52,6 +60,10 @@ def list_event_types(_: User = Depends(require_permission(PERM_AUDIT_VIEW))):
 
 
 @router.get("/actors")
-def list_actors(db: Session = Depends(get_db), _: User = Depends(require_permission(PERM_AUDIT_VIEW))):
+def list_actors(db: Session = Depends(get_db), user: User = Depends(require_permission(PERM_AUDIT_VIEW))):
+    log_audit(db, "ACTOR_LIST", actor_username=user.username,
+              actor_role=user.role.name if user.role else "",
+              source_app="UI", reason="Actor list retrieved",
+              request_id=get_request_id())
     rows = db.query(AuditLog.actor_username).distinct().order_by(AuditLog.actor_username).all()
     return [r[0] for r in rows]

@@ -86,7 +86,6 @@ def _gather_platform_context(db: Session) -> str:
             "legal_basis": p.legal_basis,
             "requires_consent": p.requires_consent,
             "retention_days": p.retention_period_days,
-            "consent_text": latest_version.consent_text if latest_version else "",
             "data_categories": latest_version.data_category_ids if latest_version else [],
             "processing_activities": latest_version.processing_activity_ids if latest_version else [],
         })
@@ -104,14 +103,14 @@ def _gather_platform_context(db: Session) -> str:
             "name": pol.name,
             "description": pol.description,
             "default_decision": pv.default_decision if pv else "REQUIRE_CONSENT",
-            "rules": pv.rules if pv else [],
+            "rules_count": len(pv.rules) if pv else 0,
         })
 
     categories = db.query(DataCategory).filter(DataCategory.is_active.is_(True)).all()
-    category_list = [{"code": c.code, "name": c.name, "description": c.description} for c in categories]
+    category_list = [{"code": c.code, "name": c.name} for c in categories]
 
     activities = db.query(ProcessingActivity).filter(ProcessingActivity.is_active.is_(True)).all()
-    activity_list = [{"code": a.code, "name": a.name, "description": a.description} for a in activities]
+    activity_list = [{"code": a.code, "name": a.name} for a in activities]
 
     status_rows = (
         db.query(Consent.status, func.count(Consent.id))
@@ -133,23 +132,15 @@ def _gather_platform_context(db: Session) -> str:
         if status in active_statuses:
             bucket["active"] += count
 
-    recent_events = (
-        db.query(AuditLog)
+    # R3-09: Strip PII from audit events - use opaque event types only
+    recent_event_types = (
+        db.query(AuditLog.event, func.count(AuditLog.id))
         .order_by(AuditLog.created_at.desc())
-        .limit(15)
+        .group_by(AuditLog.event)
+        .limit(20)
         .all()
     )
-    recent_list = [
-        {
-            "event": e.event,
-            "actor": e.actor_username,
-            "purpose": e.purpose_code or "",
-            "old_status": e.old_status or "",
-            "new_status": e.new_status or "",
-            "created_at": e.created_at.isoformat() if e.created_at else "",
-        }
-        for e in recent_events
-    ]
+    event_summary = {e: c for e, c in recent_event_types}
 
     total_users = db.query(func.count(User.id)).scalar() or 0
 
@@ -178,18 +169,15 @@ PURPOSES ({len(purposes)} active)
 
     ctx += f"\nDATA CATEGORIES ({len(categories)} active)\n"
     for cl in category_list:
-        ctx += f"- [{cl['code']}] {cl['name']}: {cl['description']}\n"
+        ctx += f"- [{cl['code']}] {cl['name']}\n"
 
     ctx += f"\nPROCESSING ACTIVITIES ({len(activities)} active)\n"
     for al in activity_list:
-        ctx += f"- [{al['code']}] {al['name']}: {al['description']}\n"
+        ctx += f"- [{al['code']}] {al['name']}\n"
 
     ctx += f"\nCONSENT POLICIES ({len(policies)} active)\n"
     for pl in policy_list:
-        ctx += f"- [{pl['code']}] {pl['name']}: {pl['description']} | Default decision: {pl['default_decision']}\n"
-        if pl["rules"]:
-            for rule in pl["rules"]:
-                ctx += f"    Rule: {rule.get('purpose_code','*')} x {rule.get('data_category_code','*')} x {rule.get('processing_activity_code','*')} -> {rule.get('decision','')} (priority: {rule.get('priority','')})\n"
+        ctx += f"- [{pl['code']}] {pl['name']}: {pl['description']} | Default decision: {pl['default_decision']} | Rules: {pl['rules_count']}\n"
 
     ctx += f"\nCONSENT DISTRIBUTION BY PURPOSE\n"
     for code, info in purpose_dist.items():
@@ -197,9 +185,10 @@ PURPOSES ({len(purposes)} active)
 
     ctx += f"\nPLATFORM USERS: {total_users}\n"
 
-    ctx += f"\nRECENT AUDIT ACTIVITY (last {len(recent_list)} events)\n"
-    for ev in recent_list:
-        ctx += f"- {ev['event']} by {ev['actor']} | purpose: {ev['purpose']} | {ev['old_status']}->{ev['new_status']} | {ev['created_at']}\n"
+    # R3-09: Aggregate event counts only - no actor names or customer names
+    ctx += f"\nRECENT ACTIVITY (aggregated event counts)\n"
+    for event_type, count in event_summary.items():
+        ctx += f"- {event_type}: {count} occurrences\n"
 
     return ctx
 

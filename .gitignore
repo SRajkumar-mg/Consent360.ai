@@ -1,7 +1,7 @@
 # ------------------------------------------------------------------
 # Consent360 - Root .gitignore
 # ------------------------------------------------------------------
-
+ 
 # ---------- Python / Backend ----------
 __pycache__/
 *.py[cod]
@@ -13,14 +13,14 @@ build/
 dist/
 .eggs/
 thumbs.db
-
+ 
 # Virtual environments
 .venv/
 venv/
 env/
 ENV/
 venv.bak/
-
+ 
 # Python test / coverage artifacts
 .pytest_cache/
 .coverage
@@ -30,13 +30,13 @@ htmlcov/
 .mypy_cache/
 .ruff_cache/
 .flake8
-
+ 
 # Backend runtime files
 *.log
 logs/
 server_err.log
 server_out.log
-
+ 
 # ---------- Node / Frontend ----------
 node_modules/
 npm-debug.log*
@@ -45,13 +45,13 @@ pnpm-debug.log*
 .eslintcache
 *.tsbuildinfo
 .vite/
-
+ 
 # Build output
 dist/
 build/
 out/
 *.local
-
+ 
 # ---------- Environment / Secrets ----------
 # Keep .env.example but ignore real .env files
 .env
@@ -63,7 +63,7 @@ out/
 *.p12
 *.pfx
 secrets/
-
+ 
 # ---------- IDE / Editor ----------
 .idea/
 .vscode/
@@ -75,7 +75,7 @@ secrets/
 *.user
 *.userosscache
 *.sln.docstates
-
+ 
 # ---------- Windows / macOS ----------
 Desktop.ini
 Thumbs.db
@@ -85,7 +85,7 @@ ehthumbs.db
 .AppleDouble
 .LSOverride
 ._*
-
+ 
 # ---------- Databases / Temp ----------
 *.sqlite
 *.sqlite3
@@ -99,10 +99,11 @@ ehthumbs.db
 temp/
 tmp/
 scratch/
-
+ 
 # ---------- Project-specific ----------
 # Frontend server state / dev caches
 *.tsbuildinfo
 # Any downloaded/scratch scratch-pads
 scratch/
 experiments/
+ 

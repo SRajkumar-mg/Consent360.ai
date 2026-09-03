@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { getErrorMessage } from '../api/client'
+import { mfaApi } from '../api'
 import { Consent360Logo } from '../components/Logo'
 
 const DEMO_USERS = [
@@ -16,19 +17,50 @@ export function LoginPage() {
   const [password, setPassword] = useState('Admin@1234')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [mfaRequired, setMfaRequired] = useState(false)
+  const [otpCode, setOtpCode] = useState('')
+  const [mfaLoading, setMfaLoading] = useState(false)
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     setError('')
     setLoading(true)
     try {
-      await login(username, password)
+      const res = await login(username, password)
+      if (res?.mfa_enabled) {
+        setMfaRequired(true)
+        setLoading(false)
+        return
+      }
       navigate('/dashboard')
     } catch (err) {
       setError(getErrorMessage(err))
     } finally {
       setLoading(false)
     }
+  }
+
+  const submitOtp = async (e: FormEvent) => {
+    e.preventDefault()
+    setError('')
+    setMfaLoading(true)
+    try {
+      const res = await mfaApi.verify(otpCode)
+      if (res.data.mfa_verified) {
+        navigate('/dashboard')
+      } else {
+        setError('Invalid OTP code. Please try again.')
+      }
+    } catch (err) {
+      setError(getErrorMessage(err))
+    } finally {
+      setMfaLoading(false)
+    }
+  }
+
+  const handleOtpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value.replace(/\D/g, '').slice(0, 6)
+    setOtpCode(val)
   }
 
   return (
@@ -62,39 +94,92 @@ export function LoginPage() {
             <div className="logo-badge"><Consent360Logo size={20} /></div>
             <div>
               <div style={{ fontWeight: 700, fontSize: 15 }}>Consent360</div>
-              <div className="text-xs" style={{ color: 'var(--text-muted)' }}>Sign in to continue</div>
+              <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                {mfaRequired ? 'Enter your MFA code' : 'Sign in to continue'}
+              </div>
             </div>
           </div>
           <div className="card" style={{ padding: 26 }}>
-            <form onSubmit={submit}>
-              {error && <div className="alert alert-error">{error}</div>}
-              <div className="form-group">
-                <label>Username</label>
-                <input className="input" value={username} onChange={(e) => setUsername(e.target.value)} autoFocus />
-              </div>
-              <div className="form-group">
-                <label>Password</label>
-                <input className="input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-              </div>
-              <button className="btn btn-primary btn-lg" style={{ width: '100%' }} disabled={loading}>
-                {loading ? 'Signing in…' : 'Sign in'}
-              </button>
-            </form>
-            <div className="divider" />
-            <div className="text-xs text-muted">Demo accounts</div>
-            <div className="flex" style={{ flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
-              {DEMO_USERS.map((u) => (
-                <button
-                  key={u.value}
-                  className="btn btn-sm"
-                  style={{ fontFamily: 'monospace', fontSize: 11 }}
-                  title={u.role}
-                  onClick={() => { setUsername(u.value); setPassword(u.pw) }}
-                >
-                  {u.value}
+            {!mfaRequired ? (
+              <form onSubmit={submit}>
+                {error && <div className="alert alert-error">{error}</div>}
+                <div className="form-group">
+                  <label>Username</label>
+                  <input className="input" value={username} onChange={(e) => setUsername(e.target.value)} autoFocus />
+                </div>
+                <div className="form-group">
+                  <label>Password</label>
+                  <input className="input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                </div>
+                <button className="btn btn-primary btn-lg" style={{ width: '100%' }} disabled={loading}>
+                  {loading ? 'Signing in…' : 'Sign in'}
                 </button>
-              ))}
-            </div>
+              </form>
+            ) : (
+              <form onSubmit={submitOtp}>
+                {error && <div className="alert alert-error">{error}</div>}
+                <div style={{ textAlign: 'center', marginBottom: 20 }}>
+                  <div style={{ fontSize: 14, color: 'var(--text-muted)' }}>
+                    Multi-factor authentication is enabled. Enter the 6-digit code from your authenticator app.
+                  </div>
+                </div>
+                <div className="form-group" style={{ textAlign: 'center' }}>
+                  <label>Verification Code</label>
+                  <input
+                    className="input"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]{6}"
+                    maxLength={6}
+                    value={otpCode}
+                    onChange={handleOtpChange}
+                    placeholder="000000"
+                    autoFocus
+                    style={{
+                      textAlign: 'center',
+                      fontSize: 24,
+                      letterSpacing: 8,
+                      fontFamily: 'monospace',
+                      width: '100%',
+                    }}
+                  />
+                </div>
+                <button
+                  className="btn btn-primary btn-lg"
+                  style={{ width: '100%' }}
+                  disabled={mfaLoading || otpCode.length !== 6}
+                >
+                  {mfaLoading ? 'Verifying…' : 'Verify'}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm"
+                  style={{ width: '100%', marginTop: 8 }}
+                  onClick={() => { setMfaRequired(false); setOtpCode(''); setError('') }}
+                >
+                  Back to login
+                </button>
+              </form>
+            )}
+            {!mfaRequired && (
+              <>
+                <div className="divider" />
+                <div className="text-xs text-muted">Demo accounts</div>
+                <div className="flex" style={{ flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+                  {DEMO_USERS.map((u) => (
+                    <button
+                      key={u.value}
+                      className="btn btn-sm"
+                      style={{ fontFamily: 'monospace', fontSize: 11 }}
+                      title={u.role}
+                      onClick={() => { setUsername(u.value); setPassword(u.pw) }}
+                    >
+                      {u.value}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
