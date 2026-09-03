@@ -7,6 +7,7 @@ export interface User {
   role_name: string
   role_permissions: string[]
   is_active: boolean
+  mfa_enabled?: boolean
   last_login_at?: string | null
   created_at: string
 }
@@ -105,6 +106,9 @@ export interface Consent {
   policy_code: string
   policy_version?: number | null
   consent_text: string
+  re_consent_required?: boolean
+  re_consent_requested_at?: string | null
+  notice_version_id?: number | null
   created_at: string
 }
 
@@ -140,6 +144,16 @@ export interface ConsentDetail {
   consent: Consent
   history: ConsentHistory[]
   evidence: ConsentEvidence[]
+  receipts?: ConsentReceipt[]
+}
+
+export interface ConsentReceipt {
+  id: number
+  receipt_number: string
+  issued_at?: string | null
+  method: string
+  payload: Record<string, unknown>
+  payload_hash: string
 }
 
 export interface CustomerConsentSummary {
@@ -316,4 +330,228 @@ export interface OrganizationDashboard {
   active_consents: number
   consent_summary: { status: string; count: number }[]
   recent_activity: any[]
+}
+
+// ---- R1: tenants / R3-01: tenant-bound API keys ----
+export interface Tenant {
+  id: number
+  code: string
+  name: string
+  domain: string
+  dpo_name: string
+  dpo_contact: string
+  withdraw_url: string
+  rights_url: string
+  grievance_url: string
+  board_complaint_url: string
+  grievance_response_days: number
+  default_language: string
+  environment: string
+  is_active: boolean
+  created_at: string
+}
+
+export interface ApiKey {
+  id: number
+  tenant_id: number
+  name: string
+  scopes: string
+  created_at: string
+  rotated_at: string | null
+  expires_at: string | null
+  revoked_at: string | null
+  last_used_at: string | null
+  is_active: boolean
+}
+
+export interface ApiKeyCreateResponse {
+  key: string
+  key_info: ApiKey
+}
+
+// ── R3-02: MFA types ───────────────────────────────────────────────────────
+export interface MfaEnrollResponse {
+  secret: string
+  qr_code: string
+  recovery_codes: string[]
+}
+
+// ---- R1-04: notices ----
+export interface Notice {
+  id: number
+  tenant_id: number
+  purpose_id: number
+  versions: NoticeVersion[]
+}
+
+export interface NoticeVersion {
+  id: number
+  notice_id: number
+  version_number: number
+  language: string
+  title: string
+  body: string
+  retention_text?: string
+  services_enabled?: string
+  data_items?: { category_id?: number; necessity?: boolean; description?: string }[]
+  status?: string
+  effective_from?: string | null
+  created_at: string
+}
+
+// ---- R1-02: audit chain ----
+export interface AuditChainResult {
+  verified: boolean
+  checked: number
+  first_broken?: number | null
+}
+
+// ---- R1-05 / R1-11: reports ----
+export interface LawfulGatewayReport {
+  gateway: Record<string, { code: string; name: string; requires_consent: boolean }[]>
+}
+
+export interface DecisionsReport {
+  total_decisions: number
+  decision_breakdown: Record<string, number>
+  p95_latency_ms?: number | null
+  avg_latency_ms?: number | null
+  sample_count?: number | null
+}
+
+export interface ComplianceEvidencePack {
+  purposes: number
+  policies_active: number
+  active_consents: number
+  evidence_rows: number
+  audit_rows: number
+  ledger_chain?: unknown
+}
+
+// ---- R1-06 / R1-08: rights & erasure ----
+export interface Objection {
+  id: number
+  customer_id: number
+  purpose_id: number
+  source: string
+  status: string
+  objected_at: string
+}
+
+export interface ErasureJob {
+  id: number
+  customer_id: number
+  trigger: string
+  status: string
+  scheduled_for: string
+  notice_sent_at?: string | null
+  executed_at?: string | null
+  evidence_hash: string
+}
+
+// ---- R1-08: sharing events ----
+export interface SharingEvent {
+  id: number
+  consent_id: number
+  processor_id: number
+  purpose_id: number
+  data_category_ids: number[]
+  event_type: string
+  occurred_at: string
+  hash: string
+}
+
+// ── R3-06: Notification types ───────────────────────────────────────────────
+export interface NotificationTemplate {
+  id: number
+  tenant_id: number
+  event_type: string
+  channel: string
+  language: string
+  subject: string
+  body: string
+  is_active: boolean
+}
+
+export interface Notification {
+  id: number
+  tenant_id: number
+  event_type: string
+  channel: string
+  language: string
+  reference_type: string
+  reference_id: string
+  subject: string
+  status: string
+  retry_count: number
+  sent_at: string | null
+  delivered_at: string | null
+  created_at: string
+}
+
+// ── R3-07: Processor types ──────────────────────────────────────────────────
+export interface Processor {
+  id: number
+  tenant_id: number
+  name: string
+  type: string
+  country: string
+  contact: string
+  contract_ref: string | null
+  contract_start: string | null
+  contract_end: string | null
+  is_active: boolean
+  created_at: string
+}
+
+export interface ProcessorAlert {
+  id: number
+  processor_id: number
+  alert_type: string
+  status: string
+  retry_count: number
+  sent_at: string | null
+  acknowledged_at: string | null
+  escalated_at: string | null
+  created_at: string
+}
+
+export interface ContractCoverageReport {
+  total_processors: number
+  covered_processors: number
+  coverage_percentage: number
+}
+
+// ── R3-08: Breach types ─────────────────────────────────────────────────────
+export interface Breach {
+  id: number
+  tenant_id: number
+  reference_no: string
+  breach_type: string
+  detected_at: string
+  aware_at: string
+  nature: string
+  extent: string
+  status: string
+  created_at: string
+}
+
+export interface BreachNotification {
+  id: number
+  breach_id: number
+  recipient_type: string
+  channel: string
+  deadline_at: string
+  sent_at: string | null
+  acknowledged_at: string | null
+  status: string
+}
+
+export interface BoardReport {
+  overview: Record<string, unknown>
+  impact: Record<string, unknown>
+  timeline: Record<string, unknown>
+  actions: Record<string, unknown>
+  compliance: Record<string, unknown>
+  next_steps: Record<string, unknown>
 }

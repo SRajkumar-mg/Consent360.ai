@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
-from app.api.deps import require_permission, verify_integration_key
+from app.api.deps import _verify_integration_key_with_db, TenantContext
 from app.api.routes.consents import _consent_out
 from app.core.config import get_settings
 from app.core.database import get_db
@@ -36,12 +36,27 @@ settings = get_settings()
 router = APIRouter(prefix="/consent", tags=["integration"])
 
 
-@router.post("/customer-context", response_model=CustomerContextOut, dependencies=[Depends(verify_integration_key)])
-def create_customer_context(payload: CustomerContextIn, request: Request, db: Session = Depends(get_db)):
+@router.post("/customer-context", response_model=CustomerContextOut)
+def create_customer_context(
+    payload: CustomerContextIn,
+    request: Request,
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(_verify_integration_key_with_db),
+):
     client_ip = request.client.host if request.client else "unknown"
     if not context_limiter.allow(f"ctx:{client_ip}"):
         raise HTTPException(status_code=429, detail="Too many context requests")
     request_id = request.headers.get("X-Request-ID")
+
+    # R3-01: Derive source_app from the authenticated key, not from the payload
+    source_app = tenant_ctx.source_app
+    if payload.source_app and payload.source_app != source_app:
+        # Log tenant scope violation as a canary metric
+        log_audit(db, "TENANT_SCOPE_VIOLATION", actor_username="integration",
+                  source_app=source_app, reason=f"Payload source_app mismatch: claimed {payload.source_app}",
+                  metadata={"claimed_source_app": payload.source_app, "actual_source_app": source_app})
+        raise HTTPException(status_code=403, detail="Source app mismatch: payload does not match authenticated key")
+
     return create_context_for_customer(
         db,
         customer_id=payload.customer_id,
@@ -49,7 +64,7 @@ def create_customer_context(payload: CustomerContextIn, request: Request, db: Se
         email=payload.email,
         phone=payload.phone,
         status=payload.status,
-        source_app=payload.source_app or "EXTERNAL_APP",
+        source_app=source_app,
         created_by="integration",
         request_id=request_id,
     )
@@ -177,7 +192,7 @@ def consume_context(context_token: str, db: Session = Depends(get_db)):
 
 @router.get("/context/status/{context_token}", response_model=MessageOut)
 def context_status(context_token: str, db: Session = Depends(get_db),
-                   _: User = Depends(require_permission(PERM_CONTEXT_USE))):
+                   _: TenantContext = Depends(_verify_integration_key_with_db)):
     context = db.query(ConsentContext).filter(ConsentContext.token == context_token).first()
     if not context:
         raise HTTPException(status_code=404, detail="Context not found")

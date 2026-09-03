@@ -94,6 +94,7 @@ def _sync_consent_preferences(db: Session, crm_customer: CrmCustomer, categories
             purpose_version = consent_service.get_current_purpose_version(purpose)
         except Exception:
             continue
+        evidence_reference = f"crm-prefs-{customer.id}-{datetime.now(timezone.utc).timestamp():.0f}"
         for category_id in purpose_version.data_category_ids:
             data_category = db.get(DataCategory, category_id)
             for activity_id in purpose_version.processing_activity_ids:
@@ -107,6 +108,7 @@ def _sync_consent_preferences(db: Session, crm_customer: CrmCustomer, categories
                         consent_service.grant_consent(
                             db, consent, reason="Consent granted via CRM cookie preferences",
                             actor_username="crm", source_app=CRM_SOURCE_APP, collection_method="UI",
+                            affirmative_action="CLICK", evidence_reference=evidence_reference,
                         )
                         consent_service.activate_consent(db, consent, reason="Consent granted via CRM cookie preferences",
                                                          actor_username="crm", source_app=CRM_SOURCE_APP)
@@ -118,7 +120,15 @@ def _sync_consent_preferences(db: Session, crm_customer: CrmCustomer, categories
 
 
 def _purge_customer_data(db: Session, target: Customer) -> None:
-    """Delete every consent-platform record belonging to a customer."""
+    """Delete every consent-platform record belonging to a customer.
+
+    R1-10: protected by the statutory retention floor — an administrative purge
+    cannot delete records younger than the configured floor. (Principal-initiated
+    erasure goes through the erasure engine, which allows the exception.)
+    """
+    from app.services.retention_floors import assert_above_retention_floor, days_since
+    age_days = days_since(target.created_at)
+    assert_above_retention_floor(db, "customers", age_days)
     consent_ids = [c.id for c in db.query(Consent).filter(Consent.customer_id == target.id).all()]
     if consent_ids:
         db.query(AuditLog).filter(AuditLog.consent_id.in_(consent_ids)).delete(synchronize_session=False)

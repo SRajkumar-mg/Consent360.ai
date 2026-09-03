@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.core.utils import get_request_id
 from app.models.entities import AuditLog
+from app.services.audit_chain import chain_evidence, get_last_entry_hash
 
 
 def log_audit(
@@ -29,7 +30,13 @@ def log_audit(
     request_id: Optional[str] = None,
     metadata: Optional[dict[str, Any]] = None,
     commit: bool = True,
+    actor_type: str = "USER",
+    actor_id: Optional[str] = None,
+    ip_address: str = "",
+    user_agent: str = "",
+    tenant_id: Optional[int] = None,
 ) -> AuditLog:
+    prev_hash = get_last_entry_hash(db, tenant_id)
     entry = AuditLog(
         event=event,
         actor_username=actor_username,
@@ -50,7 +57,13 @@ def log_audit(
         reason=reason,
         request_id=request_id or get_request_id(),
         details=metadata or {},
+        actor_type=actor_type,
+        actor_id=actor_id or actor_username,
+        ip_address=ip_address,
+        user_agent=user_agent,
+        tenant_id=tenant_id,
     )
+    chain_evidence(entry, prev_hash)
     db.add(entry)
     if commit:
         db.commit()

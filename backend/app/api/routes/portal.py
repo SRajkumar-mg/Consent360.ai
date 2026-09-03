@@ -192,3 +192,79 @@ def portal_withdraw(
         affected=affected,
         message=f"Withdrawn consent for {purpose.name} ({affected} records)",
     )
+
+
+@router.get("/history")
+def portal_history(
+    x_context_token: str = Header(alias="X-Context-Token"),
+    db: Session = Depends(get_db),
+):
+    """R1-11: consent history for a principal (self-service)."""
+    customer = _resolve_customer(x_context_token, db)
+    rows = (
+        db.query(Consent)
+        .filter(Consent.customer_id == customer.id)
+        .order_by(Consent.updated_at.desc())
+        .all()
+    )
+    return [
+        {
+            "consent_id": c.id,
+            "purpose_code": c.purpose.code if c.purpose else None,
+            "purpose_name": c.purpose.name if c.purpose else None,
+            "status": c.status,
+            "consent_version": c.consent_version,
+            "granted_at": c.granted_at.isoformat() if c.granted_at else None,
+            "expires_at": c.expires_at.isoformat() if c.expires_at else None,
+            "history": [
+                {
+                    "action": h.action, "from_status": h.from_status, "to_status": h.to_status,
+                    "reason": h.reason, "at": h.created_at.isoformat()if h.created_at else None,
+                }
+                for h in c.history
+            ],
+        }
+        for c in rows
+    ]
+
+
+@router.get("/export")
+def portal_export(
+    x_context_token: str = Header(alias="X-Context-Token"),
+    db: Session = Depends(get_db),
+):
+    """R1-11: principal-facing data-export of their own consent records (CSV)."""
+    import csv
+    import io
+
+    customer = _resolve_customer(x_context_token, db)
+    rows = (
+        db.query(Consent)
+        .filter(Consent.customer_id == customer.id)
+        .all()
+    )
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow([
+        "consent_id", "purpose", "data_category", "processing_activity",
+        "status", "consent_version", "granted_at", "expires_at", "consent_text",
+    ])
+    for c in rows:
+        writer.writerow([
+            c.id,
+            c.purpose.code if c.purpose else "",
+            c.data_category.code if c.data_category else "",
+            c.processing_activity.code if c.processing_activity else "",
+            c.status,
+            c.consent_version,
+            c.granted_at.isoformat() if c.granted_at else "",
+            c.expires_at.isoformat() if c.expires_at else "",
+            (c.consent_text or ""),
+        ])
+    content = buf.getvalue()
+    from fastapi.responses import Response
+    return Response(
+        content=content,
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="consent-export-{customer.external_id}.csv"'},
+    )

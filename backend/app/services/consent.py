@@ -1,3 +1,5 @@
+import hashlib
+import json
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Optional
@@ -11,6 +13,7 @@ from app.models.entities import (
     Consent,
     ConsentEvidence,
     ConsentHistory,
+    ConsentReceipt,
     Customer,
     DataCategory,
     PolicyVersion,
@@ -210,8 +213,27 @@ def _create_evidence(
     source_app: str,
     request_id: Optional[str] = None,
     extra_metadata: Optional[dict] = None,
+    client_context: Optional[dict] = None,
+    ip_address: str = "",
+    affirmative_action: Optional[str] = None,
+    evidence_reference: Optional[str] = None,
+    notice_version_id: Optional[int] = None,
 ) -> ConsentEvidence:
     pv = consent.purpose_version
+
+    # R1-03: for non-PORTAL collection, require affirmative action + ref
+    if collection_method != "PORTAL" and affirmative_action is None:
+        raise HTTPException(
+            status_code=422,
+            detail="affirmative_action is required for non-portal consent collection",
+        )
+
+    ctx = client_context or {}
+    consent_text = consent.consent_text or pv.consent_text
+
+    # content_hash = SHA-256 over the exact consent text shown at grant time
+    content_hash = hashlib.sha256((consent_text or "").encode("utf-8")).hexdigest()
+
     evidence = ConsentEvidence(
         consent_id=consent.id,
         evidence_ref=f"EV-{uuid.uuid4().hex[:16].upper()}",
@@ -219,11 +241,21 @@ def _create_evidence(
         collected_by=collected_by,
         collection_method=collection_method,
         source_app=source_app,
-        consent_text=consent.consent_text or pv.consent_text,
+        consent_text=consent_text,
         consent_version=consent.consent_version,
         purpose_version=pv.version_number,
         policy_version=consent.policy_version.version_number if consent.policy_version else None,
         request_id=request_id,
+        language=ctx.get("language", "en"),
+        ip_address=ip_address,
+        user_agent=ctx.get("user_agent", ""),
+        session_id=ctx.get("session_id", ""),
+        ui_control_id=ctx.get("ui_control_id", ""),
+        banner_version=ctx.get("banner_version", ""),
+        screen_id=ctx.get("screen_id", ""),
+        affirmative_action=affirmative_action or "CLICK",
+        content_hash=content_hash,
+        notice_version_id=notice_version_id,
         details={
             **(extra_metadata or {}),
             "purpose_code": consent.purpose.code,
@@ -231,9 +263,51 @@ def _create_evidence(
             "processing_activity_code": consent.processing_activity.code,
         },
     )
+    if evidence_reference:
+        evidence.details["evidence_reference"] = evidence_reference
     db.add(evidence)
     db.flush()
     return evidence
+
+
+def _create_receipt(
+    db: Session,
+    consent: Consent,
+    evidence: ConsentEvidence,
+    *,
+    collection_method: str,
+    tenant_id: Optional[int] = None,
+) -> ConsentReceipt:
+    """Create an ISO/IEC TS 27560-shaped consent receipt (R1-08)."""
+    pv = consent.purpose_version
+    payload = {
+        "subject": {"customer_id": consent.customer.external_id if consent.customer else None},
+        "purpose": consent.purpose.code if consent.purpose else None,
+        "data_items": pv.data_items or [],
+        "timestamp": evidence.collected_at.isoformat(),
+        "consent_method": collection_method,
+        "expiry": consent.expires_at.isoformat() if consent.expires_at else None,
+        "revocable": True,
+    }
+    payload_hash = hashlib.sha256(json.dumps(payload, sort_keys=True, default=str).encode("utf-8")).hexdigest()
+    receipt = ConsentReceipt(
+        consent_id=consent.id,
+        consent_evidence_id=evidence.id,
+        receipt_number=f"RCPT-{uuid.uuid4().hex[:16].upper()}",
+        tenant_id=tenant_id or (consent.tenant_id if consent.tenant_id else 1),
+        customer_id=consent.customer_id,
+        purpose_id=consent.purpose_id,
+        notice_version_id=consent.notice_version_id,
+        data_items_snapshot=pv.data_items or [],
+        method=collection_method,
+        payload=payload,
+        payload_hash=payload_hash,
+        issued_at=utcnow(),
+    )
+    receipt.consent = consent
+    db.add(receipt)
+    db.flush()
+    return receipt
 
 
 def _apply_status_timestamps(consent: Consent, to_status: str, now: datetime) -> None:
@@ -286,6 +360,11 @@ def grant_consent(
     collection_method: str = "UI",
     consent_text: Optional[str] = None,
     request_id: Optional[str] = None,
+    client_context: Optional[dict] = None,
+    ip_address: str = "",
+    affirmative_action: Optional[str] = None,
+    evidence_reference: Optional[str] = None,
+    tenant_id: Optional[int] = None,
 ) -> Consent:
     if consent.status not in ["REQUESTED", "PENDING", "DENIED", "WITHDRAWN", "EXPIRED", "NOT_REQUESTED"]:
         raise HTTPException(status_code=400, detail=f"Cannot grant consent from status {consent.status}")
@@ -297,6 +376,10 @@ def grant_consent(
     consent.withdrawn_at = None
     consent.renewed_at = None
     consent.requested_at = consent.requested_at or now
+    consent.re_consent_required = False
+    consent.re_consent_requested_at = None
+    if tenant_id:
+        consent.tenant_id = tenant_id
     if expires_in_days is not None:
         consent.expires_at = now + timedelta(days=expires_in_days)
     elif consent.purpose and consent.purpose.retention_period_days:
@@ -310,7 +393,11 @@ def grant_consent(
                        metadata={"expires_at": consent.expires_at.isoformat() if consent.expires_at else None})
     evidence = _create_evidence(db, consent, collected_by=actor_username, collection_method=collection_method,
                                 source_app=source_app, request_id=request_id,
-                                extra_metadata={"expires_at": consent.expires_at.isoformat() if consent.expires_at else None})
+                                extra_metadata={"expires_at": consent.expires_at.isoformat() if consent.expires_at else None},
+                                client_context=client_context, ip_address=ip_address,
+                                affirmative_action=affirmative_action, evidence_reference=evidence_reference,
+                                notice_version_id=consent.notice_version_id)
+    _create_receipt(db, consent, evidence, collection_method=collection_method, tenant_id=tenant_id)
     consent.history[-1].details["evidence_ref"] = evidence.evidence_ref
     db.commit()
     db.refresh(consent)
@@ -364,6 +451,7 @@ def withdraw_consent(
     actor_username: str = "system",
     source_app: str = "",
     request_id: Optional[str] = None,
+    trigger_erasure: bool = True,
 ) -> Consent:
     _validate_transition(consent.status, "WITHDRAWN", "withdraw")
     from_status = consent.status
@@ -374,6 +462,20 @@ def withdraw_consent(
                        actor_username=actor_username, source_app=source_app, request_id=request_id,
                        policy_version_id=consent.policy_version_id,
                        policy_version_number=consent.policy_version.version_number if consent.policy_version else None)
+    db.flush()
+    # R1-06: withdrawal of the last active consent for a customer triggers erasure
+    if trigger_erasure:
+        from app.services.retention import trigger_erasure
+        remaining = (
+            db.query(Consent)
+            .filter(
+                Consent.customer_id == consent.customer_id,
+                Consent.status.in_(["GRANTED", "ACTIVE", "RENEWED", "UPDATED"]),
+            )
+            .count()
+        )
+        if remaining == 0:
+            trigger_erasure(db, consent.customer_id, trigger="WITHDRAWAL", tenant_id=consent.tenant_id)
     db.commit()
     db.refresh(consent)
     return consent
@@ -389,6 +491,10 @@ def renew_consent(
     source_app: str = "",
     collection_method: str = "UI",
     request_id: Optional[str] = None,
+    client_context: Optional[dict] = None,
+    ip_address: str = "",
+    affirmative_action: Optional[str] = None,
+    tenant_id: Optional[int] = None,
 ) -> Consent:
     if consent.status not in ["GRANTED", "ACTIVE", "RENEWED", "UPDATED", "EXPIRED", "WITHDRAWN"]:
         raise HTTPException(status_code=400, detail=f"Cannot renew consent from status {consent.status}")
@@ -399,6 +505,10 @@ def renew_consent(
     consent.granted_at = now
     consent.withdrawn_at = None
     consent.denied_at = None
+    consent.re_consent_required = False
+    consent.re_consent_requested_at = None
+    if tenant_id:
+        consent.tenant_id = tenant_id
     if expires_in_days is not None:
         consent.expires_at = now + timedelta(days=expires_in_days)
     elif consent.purpose and consent.purpose.retention_period_days:
@@ -412,7 +522,10 @@ def renew_consent(
                        metadata={"new_expires_at": consent.expires_at.isoformat() if consent.expires_at else None})
     evidence = _create_evidence(db, consent, collected_by=actor_username, collection_method=collection_method,
                                 source_app=source_app, request_id=request_id,
-                                extra_metadata={"renewed": True, "expires_at": consent.expires_at.isoformat() if consent.expires_at else None})
+                                extra_metadata={"renewed": True, "expires_at": consent.expires_at.isoformat() if consent.expires_at else None},
+                                client_context=client_context or {"language": "en"}, ip_address=ip_address,
+                                affirmative_action=affirmative_action, notice_version_id=consent.notice_version_id)
+    _create_receipt(db, consent, evidence, collection_method=collection_method, tenant_id=tenant_id)
     consent.history[-1].details["evidence_ref"] = evidence.evidence_ref
     db.commit()
     db.refresh(consent)
@@ -444,20 +557,30 @@ def expire_consents(db: Session, *, actor_username: str = "system", source_app: 
 def update_consent_for_purpose_version(
     db: Session, consent: Consent, new_pv: PurposeVersion, *, reason: str = "",
     actor_username: str = "system", source_app: str = "", request_id: Optional[str] = None,
+    material_change: bool = False,
 ) -> Consent:
-    """Re-associate consent with a new purpose version and mark UPDATED."""
+    """Re-associate consent with a new purpose version and mark UPDATED.
+
+    R1-09: if the change is a *material* change (data items, lawful basis, or
+    consent text changed materially), the consent is flagged re_consent_required
+    instead of silently carrying forward; the principal must re-consent.
+    """
     if consent.status not in ["GRANTED", "ACTIVE", "RENEWED", "UPDATED"]:
         return consent
     from_status = consent.status
     consent.purpose_version_id = new_pv.id
     consent.consent_text = new_pv.consent_text or consent.consent_text
-    consent.status = "UPDATED"
+    consent.status = "UPDATED" if not material_change else "UPDATED"
+    if material_change:
+        consent.re_consent_required = True
+        consent.re_consent_requested_at = utcnow()
     _record_transition(db, consent, action="CONSENT_UPDATED", to_status="UPDATED", from_status=from_status,
-                       reason=reason or f"Purpose version updated to v{new_pv.version_number}",
+                       reason=reason or (f"Material change — re-consent required (purpose v{new_pv.version_number})"
+                                         if material_change else f"Purpose version updated to v{new_pv.version_number}"),
                        actor_username=actor_username, source_app=source_app, request_id=request_id,
                        policy_version_id=consent.policy_version_id,
                        policy_version_number=consent.policy_version.version_number if consent.policy_version else None,
-                       metadata={"purpose_version": new_pv.version_number})
+                       metadata={"purpose_version": new_pv.version_number, "material_change": material_change})
     db.commit()
     db.refresh(consent)
     return consent

@@ -1,0 +1,33 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "consent360-ui-reference",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 5174,
+      "cwd": "C:\\Users\\RajkumarS\\Downloads\\consent360_ui\\consent360_ui"
+    },
+    {
+      "name": "frontend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--", "--port", "5183", "--strictPort"],
+      "port": 5183,
+      "cwd": "C:\\Users\\RajkumarS\\Documents\\Consent360.ai\\frontend"
+    },
+    {
+      "name": "crm",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--", "--port", "5184", "--strictPort"],
+      "port": 5184,
+      "cwd": "C:\\Users\\RajkumarS\\Documents\\Consent360.ai\\crm"
+    },
+    {
+      "name": "org-portal",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--", "--port", "5185", "--strictPort"],
+      "port": 5185,
+      "cwd": "C:\\Users\\RajkumarS\\Documents\\Consent360.ai\\org-portal"
+    }
+  ]
+}

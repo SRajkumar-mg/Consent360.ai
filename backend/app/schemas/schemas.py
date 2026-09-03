@@ -10,6 +10,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 class LoginRequest(BaseModel):
     username: str = Field(min_length=1, max_length=64)
     password: str = Field(min_length=1, max_length=128)
+    otp_code: Optional[str] = Field(default=None, description="TOTP MFA code if user has MFA enrolled")
 
 
 class TokenResponse(BaseModel):
@@ -363,6 +364,10 @@ class ConsentAction(BaseModel):
     collection_method: str = "UI"
     expires_in_days: Optional[int] = Field(default=None, ge=1)
     consent_text: Optional[str] = None
+    affirmative_action: Optional[str] = Field(default=None, description="R1-03: explicit affirmative action (CLICK, CHECKBOX, SUBMIT, TOPIC_SELECT, VERBAL, ELECTRONIC_SIGNATURE)")
+    evidence_reference: Optional[str] = None
+    client_context: Optional[dict] = Field(default=None, description="R1-03: {language, user_agent, session_id, ui_control_id, banner_version, screen_id}")
+    ip_address: str = ""
 
 
 class ConsentOut(BaseModel):
@@ -391,6 +396,9 @@ class ConsentOut(BaseModel):
     policy_code: str = ""
     policy_version: Optional[int] = None
     consent_text: str = ""
+    re_consent_required: bool = False
+    re_consent_requested_at: Optional[datetime] = None
+    notice_version_id: Optional[int] = None
     created_at: datetime
 
 
@@ -421,13 +429,34 @@ class ConsentEvidenceOut(BaseModel):
     purpose_version: int
     policy_version: Optional[int] = None
     request_id: Optional[str] = None
+    language: str = "en"
+    ip_address: str = ""
+    user_agent: str = ""
+    session_id: str = ""
+    ui_control_id: str = ""
+    banner_version: str = ""
+    screen_id: str = ""
+    affirmative_action: str = "CLICK"
+    content_hash: str = ""
+    notice_version_id: Optional[int] = None
     details: dict
+
+
+class ConsentReceiptOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    receipt_number: str = ""
+    issued_at: Optional[datetime] = None
+    method: str
+    payload: dict
+    payload_hash: str = ""
 
 
 class ConsentDetailOut(BaseModel):
     consent: ConsentOut
     history: list[ConsentHistoryOut]
     evidence: list[ConsentEvidenceOut]
+    receipts: list[ConsentReceiptOut] = []
 
 
 class CustomerConsentSummary(BaseModel):
@@ -464,6 +493,13 @@ class AuditEventOut(BaseModel):
     request_id: Optional[str] = None
     details: dict
     created_at: datetime
+    actor_type: str = "USER"
+    actor_id: str = ""
+    ip_address: str = ""
+    user_agent: str = ""
+    entry_hash: str = ""
+    prev_hash: Optional[str] = None
+    tenant_id: Optional[int] = None
 
 
 class CustomerPortalOut(BaseModel):

@@ -5,7 +5,7 @@ import type { User } from '../types'
 interface AuthContextValue {
   user: User | null
   loading: boolean
-  login: (username: string, password: string) => Promise<User>
+  login: (username: string, password: string, otpCode?: string) => Promise<User>
   logout: () => void
   hasPermission: (permission: string) => boolean
 }
@@ -32,8 +32,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setLoading(false))
   }, [])
 
-  const login = async (username: string, password: string) => {
-    const res = await authApi.login(username, password)
+  const login = async (username: string, password: string, otpCode?: string) => {
+    const res = await authApi.login(username, password, otpCode)
     localStorage.setItem('cmp_access_token', res.data.access_token)
     localStorage.setItem('cmp_refresh_token', res.data.refresh_token)
     setUser(res.data.user)

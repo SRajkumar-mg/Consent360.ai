@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useConsent } from '../useConsent'
+import { useConsent } from './useConsent'
 
 interface ConsentBannerProps {
   purposes: { code: string; name: string; description: string; granted: boolean }[]
@@ -9,6 +9,7 @@ interface ConsentBannerProps {
   onRejectAll: () => void
   onSave: () => void
   onClose: () => void
+  isAnonymous?: boolean
 }
 
 export function ConsentBanner({
@@ -19,6 +20,7 @@ export function ConsentBanner({
   onRejectAll,
   onSave,
   onClose,
+  isAnonymous = false,
 }: ConsentBannerProps) {
   useEffect(() => {
     document.body.style.overflow = 'hidden'
@@ -34,6 +36,12 @@ export function ConsentBanner({
             We use cookies and data processing to provide you with a better experience.
             You can manage your consent preferences below. Required purposes are always enabled.
           </p>
+          {isAnonymous && (
+            <p className="consent-anon-note" style={{ marginTop: 8, fontSize: 12, opacity: 0.75 }}>
+              You're currently browsing anonymously. Your choices are saved on this device only and
+              will be applied to your CareerHub account when you sign in.
+            </p>
+          )}
         </div>
 
         <div className="consent-body">

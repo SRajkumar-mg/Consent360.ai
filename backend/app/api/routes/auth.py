@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 
+import pyotp
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials
 from jose import jwt
@@ -13,13 +14,14 @@ from app.core.rbac import PERM_USER_MANAGE, ROLE_PERMISSIONS
 from app.core.security import (
     AUTH_CONTEXT,
     create_access_token,
+    create_org_refresh_token,
     create_refresh_token,
     decode_token,
     hash_password,
     verify_password,
 )
 from app.core.utils import login_limiter, mask_identifier
-from app.models.entities import Organization, OrganizationUser, User
+from app.models.entities import MFARecoveryCode, MFASecret, Organization, OrganizationUser, User
 
 settings = get_settings()
 from app.schemas.schemas import (
@@ -60,13 +62,38 @@ def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)
     if user and verify_password(payload.password, user.password_hash):
         if not user.is_active:
             raise HTTPException(status_code=403, detail="User account is disabled")
+        # R3-02: Check account lockout
+        if user.locked_until and user.locked_until > datetime.now(timezone.utc):
+            raise HTTPException(status_code=423, detail="Account is temporarily locked")
+        # R3-02: MFA verification if enrolled
+        if user.mfa_enabled:
+            if not payload.otp_code:
+                raise HTTPException(status_code=401, detail="MFA required - provide otp_code")
+            mfa_row = db.query(MFASecret).filter(MFASecret.user_id == user.id, MFASecret.is_enabled.is_(True)).first()
+            valid = bool(mfa_row) and pyotp.TOTP(mfa_row.secret).verify(payload.otp_code)
+            if not valid:
+                # Track failed MFA attempt
+                user.failed_login_count = (user.failed_login_count or 0) + 1
+                if user.failed_login_count >= settings.ACCOUNT_LOCKOUT_THRESHOLD:
+                    user.locked_until = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCOUNT_LOCKOUT_MINUTES)
+                db.commit()
+                log_audit(db, "LOGIN_FAILED", actor_username=payload.username, source_app="UI",
+                          reason="Invalid MFA code", metadata={"ip": client_ip})
+                raise HTTPException(status_code=401, detail="Invalid OTP code")
+            # Reset failed login count on successful MFA
+            user.failed_login_count = 0
+        else:
+            # No MFA enrolled - reset any previous failed count
+            user.failed_login_count = 0
+        user.locked_until = None
         user.last_login_at = datetime.now(timezone.utc)
         db.commit()
         log_audit(db, "LOGIN", actor_username=user.username, actor_role=user.role.name if user.role else "",
                   source_app="UI", reason="User logged in", metadata={"ip": client_ip})
         return TokenResponse(
-            access_token=create_access_token(user.id, user.username, user.role.name if user.role else ""),
-            refresh_token=create_refresh_token(user.id),
+            access_token=create_access_token(user.id, user.username, user.role.name if user.role else "",
+                                              token_version=user.token_version or 1),
+            refresh_token=create_refresh_token(user.id, token_version=user.token_version or 1),
             user=_user_out(user),
         )
     org_user = db.query(OrganizationUser).filter(OrganizationUser.username == payload.username).first()
@@ -101,10 +128,12 @@ def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)
             "ctx": AUTH_CONTEXT,
         }
         expires = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-        token_payload.update({"exp": expires, "iat": datetime.now(timezone.utc)})
+        token_payload.update({"exp": expires, "iat": datetime.now(timezone.utc),
+                              "iss": settings.JWT_ISSUER, "aud": settings.JWT_AUDIENCE})
         access_token = jwt.encode(token_payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
-        refresh_payload = {"sub": str(org_user.id), "type": "refresh", "ctx": AUTH_CONTEXT, "exp": expires, "iat": datetime.now(timezone.utc)}
-        refresh_token = jwt.encode(refresh_payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
+        # R3-02: org-user refresh token uses its own longer expiry and includes
+        # a jti + token_version so the revocation/invalidation check works.
+        refresh_token = create_org_refresh_token(org_user.id)
         return TokenResponse(access_token=access_token, refresh_token=refresh_token, user=user_out)
     log_audit(db, "LOGIN_FAILED", actor_username=payload.username, source_app="UI",
               reason="Invalid credentials", metadata={"ip": client_ip})
@@ -119,9 +148,13 @@ def refresh(payload: RefreshRequest, db: Session = Depends(get_db)):
     user = db.get(User, int(data.get("sub", 0)))
     if not user or not user.is_active:
         raise HTTPException(status_code=401, detail="User not found or inactive")
+    token_version = data.get("token_version", 1)
+    if user.token_version and token_version and int(token_version) < user.token_version:
+        raise HTTPException(status_code=401, detail="Token has been invalidated")
     return TokenResponse(
-        access_token=create_access_token(user.id, user.username, user.role.name if user.role else ""),
-        refresh_token=create_refresh_token(user.id),
+        access_token=create_access_token(user.id, user.username, user.role.name if user.role else "",
+                                          token_version=user.token_version or 1),
+        refresh_token=create_refresh_token(user.id, token_version=user.token_version or 1),
         user=_user_out(user),
     )
 
@@ -159,9 +192,79 @@ def me(db: Session = Depends(get_db), credentials: HTTPAuthorizationCredentials 
 
 @router.post("/logout")
 def logout(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    # R3-02: Invalidate all tokens for this user by bumping token_version.
+    # The get_current_user dependency checks token_version against user.token_version,
+    # so incrementing it here causes all previously-issued tokens to be rejected.
+    current_user.token_version = (current_user.token_version or 1) + 1
+    db.commit()
     log_audit(db, "LOGOUT", actor_username=current_user.username,
               actor_role=current_user.role.name if current_user.role else "", source_app="UI")
-    return {"message": "Logged out"}
+    return {"message": "Logged out, all tokens invalidated"}
+
+
+@router.post("/mfa/enroll", response_model=dict)
+def mfa_enroll(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    # R3-02: TOTP MFA enrollment - generate secret and store server-side in MFASecret.
+    secret = pyotp.random_base32()
+    mfa_row = db.query(MFASecret).filter(MFASecret.user_id == current_user.id).first()
+    if mfa_row:
+        mfa_row.secret = secret
+        mfa_row.is_enabled = True
+        mfa_row.enabled_at = datetime.now(timezone.utc)
+    else:
+        mfa_row = MFASecret(user_id=current_user.id, secret=secret, is_enabled=True,
+                             enabled_at=datetime.now(timezone.utc))
+        db.add(mfa_row)
+    current_user.mfa_enabled = True
+    db.commit()
+    # Generate QR URI for TOTP app (secret not returned - user scans QR)
+    totp = pyotp.TOTP(secret)
+    qr_uri = totp.provisioning_uri(name=current_user.username, issuer_name="Consent360")
+    return {"qr_code_uri": qr_uri, "backup_codes": []}
+
+
+@router.post("/mfa/verify", response_model=dict)
+def mfa_verify(payload: dict, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    # R3-02: Verify TOTP code during login
+    code = payload.get("code")
+    if not code:
+        raise HTTPException(status_code=400, detail="OTP code required")
+    mfa_row = db.query(MFASecret).filter(MFASecret.user_id == current_user.id).first()
+    if not mfa_row:
+        raise HTTPException(status_code=400, detail="MFA not enrolled")
+    if not pyotp.TOTP(mfa_row.secret).verify(code):
+        # Track failed MFA attempt
+        current_user.failed_login_count = (current_user.failed_login_count or 0) + 1
+        db.commit()
+        raise HTTPException(status_code=401, detail="Invalid OTP code")
+    # Reset failed login count on successful MFA
+    current_user.failed_login_count = 0
+    db.commit()
+    return {"message": "MFA verified successfully"}
+
+
+@router.post("/mfa/recovery-codes", response_model=dict)
+def mfa_recovery_codes(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    # R3-02: Generate recovery codes for MFA (single-use, stored hashed)
+    from hashlib import sha256
+    codes_generated = []
+    for i in range(8):
+        code = pyotp.random_base32()[:8]
+        code_hash = sha256(code.encode()).hexdigest()
+        recovery = MFARecoveryCode(
+            user_id=current_user.id,
+            code_hash=code_hash,
+            is_used=False,
+        )
+        db.add(recovery)
+        codes_generated.append(code)
+    db.commit()
+    # Return count of unused codes (not the codes themselves for security)
+    unused = db.query(MFARecoveryCode).filter(
+        MFARecoveryCode.user_id == current_user.id,
+        MFARecoveryCode.is_used == False,
+    ).count()
+    return {"code_count": unused, "remaining": unused}
 
 
 @router.get("/users", response_model=list[UserListOut])

@@ -5,33 +5,33 @@
 }
 
 :root {
-  --ink: #0d1130;
-  --ink-2: #141a3d;
-  --violet: #6d5df6;
-  --violet-deep: #4f3df0;
-  --violet-soft: #ece9fe;
-  --coral: #ff6b4a;
-  --amber: #ffb454;
-  --mint: #2dd4a7;
-  --text: #141a3d;
-  --text-secondary: #4d5575;
-  --muted: #8b93b4;
-  --border: #e6e8f4;
-  --bg: #f5f6fc;
+  --ink: #0f172a;
+  --ink-2: #0f172a;
+  --violet: #4f46e5;
+  --violet-deep: #4338ca;
+  --violet-soft: #eef2ff;
+  --coral: #6366f1;
+  --amber: #f59e0b;
+  --mint: #10b981;
+  --text: #0f172a;
+  --text-secondary: #475569;
+  --muted: #94a3b8;
+  --border: #e2e8f0;
+  --bg: #f8fafc;
   --card: #ffffff;
-  --danger: #e03a4e;
-  --danger-soft: #fdeef0;
-  --success: #14a36a;
-  --success-soft: #e7f8f1;
-  --info-soft: #e9f3ff;
+  --danger: #ef4444;
+  --danger-soft: #fef2f2;
+  --success: #10b981;
+  --success-soft: #ecfdf5;
+  --info-soft: #eff6ff;
   --radius-lg: 20px;
-  --radius: 14px;
-  --radius-sm: 10px;
-  --shadow: 0 1px 2px rgba(13, 17, 48, 0.05), 0 8px 24px rgba(13, 17, 48, 0.07);
-  --shadow-lg: 0 24px 60px rgba(13, 17, 48, 0.18);
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow: 0 4px 12px rgba(99, 102, 241, 0.03);
+  --shadow-lg: 0 20px 48px rgba(15, 23, 42, 0.14);
   --font-body: 'Inter', 'Segoe UI', system-ui, sans-serif;
-  --font-display: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
-  --grad-brand: linear-gradient(135deg, #6d5df6 0%, #9a6df6 55%, #c06df6 100%);
+  --font-display: 'Inter', system-ui, sans-serif;
+  --grad-brand: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
 }
 
 body {
@@ -59,13 +59,13 @@ h1, h2, h3 {
     radial-gradient(900px 560px at 12% 8%, rgba(109, 93, 246, 0.5), transparent 65%),
     radial-gradient(720px 520px at 88% 92%, rgba(255, 107, 74, 0.26), transparent 60%),
     radial-gradient(600px 480px at 75% 12%, rgba(45, 212, 167, 0.16), transparent 55%),
-    linear-gradient(160deg, #0d1130 0%, #171e4d 60%, #1c1440 100%);
+    linear-gradient(160deg, #0f172a 0%, #1e1b4b 60%, #312e81 100%);
 }
 
 /* ============================================================= JOBHUB */
 .jhub-page {
   min-height: 100vh;
-  background: #f3f2ef;
+  background: #f8fafc;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
 }
 
@@ -75,7 +75,7 @@ h1, h2, h3 {
   top: 0;
   z-index: 100;
   background: #fff;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid #e2e8f0;
   box-shadow: 0 1px 2px rgba(0,0,0,0.06);
 }
 
@@ -99,7 +99,7 @@ h1, h2, h3 {
   width: 34px;
   height: 34px;
   border-radius: 8px;
-  background: linear-gradient(135deg, #0a66c2, #004182);
+  background: linear-gradient(135deg, #4f46e5, #4338ca);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -110,7 +110,7 @@ h1, h2, h3 {
 .jhub-brand-text {
   font-weight: 700;
   font-size: 20px;
-  color: #0a66c2;
+  color: #4f46e5;
   letter-spacing: -0.5px;
 }
 
@@ -118,12 +118,12 @@ h1, h2, h3 {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #eef3f8;
+  background: #eef2ff;
   border-radius: 6px;
   padding: 0 12px;
   height: 34px;
   margin-left: 12px;
-  color: #666;
+  color: #64748b;
   width: 280px;
 }
 
@@ -132,7 +132,7 @@ h1, h2, h3 {
   background: none;
   outline: none;
   font-size: 13px;
-  color: #333;
+  color: #334155;
   width: 100%;
   font-family: inherit;
 }
@@ -152,7 +152,7 @@ h1, h2, h3 {
   border: none;
   background: none;
   cursor: pointer;
-  color: #666;
+  color: #64748b;
   font-size: 11px;
   font-weight: 500;
   border-radius: 6px;
@@ -161,20 +161,20 @@ h1, h2, h3 {
 }
 
 .jhub-nav-btn:hover {
-  color: #333;
-  background: #f3f2ef;
+  color: #334155;
+  background: #f8fafc;
 }
 
 .jhub-nav-btn.active {
-  color: #0a66c2;
-  border-bottom: 2px solid #0a66c2;
+  color: #4f46e5;
+  border-bottom: 2px solid #4f46e5;
   border-radius: 0;
 }
 
 .jhub-nav-divider {
   width: 1px;
   height: 28px;
-  background: #e0e0e0;
+  background: #e2e8f0;
   margin: 0 8px;
 }
 
@@ -182,7 +182,7 @@ h1, h2, h3 {
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #0a66c2, #004182);
+  background: linear-gradient(135deg, #4f46e5, #4338ca);
   color: #fff;
   display: flex;
   align-items: center;
@@ -199,14 +199,14 @@ h1, h2, h3 {
   width: 34px;
   height: 34px;
   border-radius: 8px;
-  color: #666;
+  color: #64748b;
   text-decoration: none;
   transition: all 0.15s;
 }
 
 .jhub-signout:hover {
-  background: #f3f2ef;
-  color: #333;
+  background: #f8fafc;
+  color: #334155;
 }
 
 /* Layout */
@@ -229,21 +229,21 @@ h1, h2, h3 {
 .jhub-profile-card {
   background: #fff;
   border-radius: 10px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid #e2e8f0;
   overflow: hidden;
   text-align: center;
 }
 
 .jhub-profile-banner {
   height: 56px;
-  background: linear-gradient(135deg, #0a66c2 0%, #004182 100%);
+  background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
 }
 
 .jhub-profile-avatar {
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #0a66c2, #004182);
+  background: linear-gradient(135deg, #4f46e5, #4338ca);
   color: #fff;
   font-size: 22px;
   font-weight: 700;
@@ -260,19 +260,19 @@ h1, h2, h3 {
   font-weight: 600;
   font-size: 16px;
   margin-top: 8px;
-  color: #191919;
+  color: #0f172a;
 }
 
 .jhub-profile-role {
   font-size: 12px;
-  color: #666;
+  color: #64748b;
   margin-bottom: 12px;
 }
 
 .jhub-profile-stats {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid #e2e8f0;
 }
 
 .jhub-stat {
@@ -281,16 +281,16 @@ h1, h2, h3 {
   align-items: center;
   padding: 10px 0;
   font-size: 11px;
-  color: #666;
+  color: #64748b;
 }
 
 .jhub-stat:not(:last-child) {
-  border-right: 1px solid #e0e0e0;
+  border-right: 1px solid #e2e8f0;
 }
 
 .jhub-stat-num {
   font-weight: 700;
-  color: #0a66c2;
+  color: #4f46e5;
   font-size: 14px;
 }
 
@@ -298,14 +298,14 @@ h1, h2, h3 {
 .jhub-sidebar-card {
   background: #fff;
   border-radius: 10px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid #e2e8f0;
   padding: 14px;
 }
 
 .jhub-sidebar-title {
   font-weight: 600;
   font-size: 14px;
-  color: #191919;
+  color: #0f172a;
   margin-bottom: 12px;
 }
 
@@ -315,7 +315,7 @@ h1, h2, h3 {
   gap: 10px;
   padding: 6px 0;
   font-size: 12.5px;
-  color: #333;
+  color: #334155;
 }
 
 .jhub-activity-dot {
@@ -339,26 +339,26 @@ h1, h2, h3 {
   padding: 14px 16px;
   background: #fff;
   border-radius: 10px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid #e2e8f0;
 }
 
 .jhub-feed-header h2 {
   font-size: 16px;
   font-weight: 600;
-  color: #191919;
+  color: #0f172a;
   margin: 0;
 }
 
 .jhub-feed-count {
   font-size: 12px;
-  color: #666;
+  color: #64748b;
 }
 
 /* Job Cards */
 .jhub-job-card {
   background: #fff;
   border-radius: 10px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid #e2e8f0;
   padding: 16px;
   transition: box-shadow 0.2s;
 }
@@ -404,13 +404,13 @@ h1, h2, h3 {
 .jhub-job-title {
   font-weight: 600;
   font-size: 15px;
-  color: #0a66c2;
+  color: #4f46e5;
   line-height: 1.3;
 }
 
 .jhub-job-company {
   font-size: 13px;
-  color: #191919;
+  color: #0f172a;
   margin-top: 2px;
 }
 
@@ -420,7 +420,7 @@ h1, h2, h3 {
   gap: 6px;
   margin-top: 4px;
   font-size: 12px;
-  color: #666;
+  color: #64748b;
   flex-wrap: wrap;
 }
 
@@ -428,12 +428,12 @@ h1, h2, h3 {
   width: 3px;
   height: 3px;
   border-radius: 50%;
-  background: #999;
+  background: #94a3b8;
 }
 
 .jhub-job-desc {
   font-size: 13px;
-  color: #333;
+  color: #334155;
   line-height: 1.5;
   margin: 10px 0 12px;
 }
@@ -443,18 +443,18 @@ h1, h2, h3 {
   align-items: center;
   justify-content: space-between;
   padding-top: 10px;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid #f1f5f9;
 }
 
 .jhub-job-posted {
   font-size: 12px;
-  color: #999;
+  color: #94a3b8;
 }
 
 .jhub-save-btn {
   background: none;
   border: none;
-  color: #666;
+  color: #64748b;
   cursor: pointer;
   padding: 6px;
   border-radius: 6px;
@@ -462,16 +462,16 @@ h1, h2, h3 {
 }
 
 .jhub-save-btn:hover {
-  color: #0a66c2;
-  background: #eef3f8;
+  color: #4f46e5;
+  background: #eef2ff;
 }
 
 .jhub-save-btn.saved {
-  color: #0a66c2;
+  color: #4f46e5;
 }
 
 .jhub-apply-btn {
-  background: #0a66c2;
+  background: #4f46e5;
   color: #fff;
   border: none;
   border-radius: 20px;
@@ -484,21 +484,21 @@ h1, h2, h3 {
 }
 
 .jhub-apply-btn:hover {
-  background: #004182;
+  background: #4338ca;
 }
 
 .jhub-apply-btn.applied {
-  background: #f3f2ef;
-  color: #191919;
-  border: 1px solid #e0e0e0;
+  background: #f8fafc;
+  color: #0f172a;
+  border: 1px solid #e2e8f0;
 }
 
 .jhub-applied-badge {
   font-size: 11px;
   font-weight: 600;
-  color: #191919;
-  background: #f3f2ef;
-  border: 1px solid #e0e0e0;
+  color: #0f172a;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
   border-radius: 12px;
   padding: 4px 10px;
   flex-shrink: 0;
@@ -508,7 +508,7 @@ h1, h2, h3 {
 .jhub-empty-state {
   background: #fff;
   border-radius: 10px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid #e2e8f0;
   padding: 48px 24px;
   text-align: center;
   display: flex;
@@ -520,13 +520,13 @@ h1, h2, h3 {
 .jhub-empty-state h3 {
   font-size: 18px;
   font-weight: 600;
-  color: #191919;
+  color: #0f172a;
   margin: 8px 0 0;
 }
 
 .jhub-empty-state p {
   font-size: 13px;
-  color: #666;
+  color: #64748b;
   margin: 0 0 16px;
 }
 
@@ -538,11 +538,11 @@ h1, h2, h3 {
 .jhub-myjobs-section h3 {
   font-size: 14px;
   font-weight: 600;
-  color: #191919;
+  color: #0f172a;
   padding: 10px 16px;
   background: #fff;
   border-radius: 10px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid #e2e8f0;
   margin: 0 0 8px;
 }
 
@@ -556,7 +556,7 @@ h1, h2, h3 {
 .jhub-network-card {
   background: #fff;
   border-radius: 10px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid #e2e8f0;
   padding: 20px 14px;
   text-align: center;
 }
@@ -577,20 +577,20 @@ h1, h2, h3 {
 .jhub-network-name {
   font-weight: 600;
   font-size: 14px;
-  color: #191919;
+  color: #0f172a;
   margin-bottom: 2px;
 }
 
 .jhub-network-role {
   font-size: 12px;
-  color: #666;
+  color: #64748b;
   margin-bottom: 12px;
 }
 
 .jhub-connect-btn {
   background: none;
-  color: #0a66c2;
-  border: 1px solid #0a66c2;
+  color: #4f46e5;
+  border: 1px solid #4f46e5;
   border-radius: 16px;
   padding: 6px 16px;
   font-size: 13px;
@@ -601,7 +601,7 @@ h1, h2, h3 {
 }
 
 .jhub-connect-btn:hover {
-  background: #eef3f8;
+  background: #eef2ff;
 }
 
 /* Right Sidebar */
@@ -616,7 +616,7 @@ h1, h2, h3 {
   align-items: center;
   justify-content: space-between;
   padding: 8px 0;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid #f1f5f9;
 }
 
 .jhub-trending-item:last-child {
@@ -626,12 +626,12 @@ h1, h2, h3 {
 .jhub-trending-tag {
   font-size: 13px;
   font-weight: 600;
-  color: #0a66c2;
+  color: #4f46e5;
 }
 
 .jhub-trending-count {
   font-size: 12px;
-  color: #666;
+  color: #64748b;
 }
 
 .jhub-pav-item {
@@ -639,7 +639,7 @@ h1, h2, h3 {
   align-items: center;
   gap: 10px;
   padding: 8px 0;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid #f1f5f9;
 }
 
 .jhub-pav-item:last-child {
@@ -662,12 +662,12 @@ h1, h2, h3 {
 .jhub-pav-name {
   font-size: 13px;
   font-weight: 600;
-  color: #191919;
+  color: #0f172a;
 }
 
 .jhub-pav-role {
   font-size: 11px;
-  color: #666;
+  color: #64748b;
 }
 
 .jhub-privacy-badge {
@@ -678,9 +678,9 @@ h1, h2, h3 {
   padding: 12px;
   background: #fff;
   border-radius: 10px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid #e2e8f0;
   font-size: 11px;
-  color: #666;
+  color: #64748b;
 }
 
 .jhub-error-toast {
@@ -688,7 +688,7 @@ h1, h2, h3 {
   bottom: 24px;
   left: 50%;
   transform: translateX(-50%);
-  background: #d32f2f;
+  background: #ef4444;
   color: #fff;
   padding: 10px 20px;
   border-radius: 8px;
@@ -709,7 +709,7 @@ h1, h2, h3 {
     radial-gradient(900px 560px at 12% 8%, rgba(109, 93, 246, 0.55), transparent 65%),
     radial-gradient(720px 520px at 88% 92%, rgba(255, 107, 74, 0.28), transparent 60%),
     radial-gradient(600px 480px at 75% 12%, rgba(45, 212, 167, 0.18), transparent 55%),
-    linear-gradient(160deg, #0d1130 0%, #171e4d 60%, #1c1440 100%);
+    linear-gradient(160deg, #0f172a 0%, #1e1b4b 60%, #312e81 100%);
 }
 
 .blob {
@@ -720,9 +720,9 @@ h1, h2, h3 {
   animation: blobFloat 14s ease-in-out infinite;
 }
 
-.blob-1 { width: 380px; height: 380px; background: #6d5df6; top: -120px; right: 8%; }
-.blob-2 { width: 300px; height: 300px; background: #ff6b4a; bottom: -100px; left: 4%; animation-delay: -5s; }
-.blob-3 { width: 220px; height: 220px; background: #2dd4a7; bottom: 18%; right: -60px; animation-delay: -9s; }
+.blob-1 { width: 380px; height: 380px; background: #4f46e5; top: -120px; right: 8%; }
+.blob-2 { width: 300px; height: 300px; background: #6366f1; bottom: -100px; left: 4%; animation-delay: -5s; }
+.blob-3 { width: 220px; height: 220px; background: #8b5cf6; bottom: 18%; right: -60px; animation-delay: -9s; }
 
 @keyframes blobFloat {
   0%, 100% { transform: translate(0, 0) scale(1); }
@@ -765,7 +765,7 @@ h1, h2, h3 {
 }
 
 .grad-text {
-  background: linear-gradient(90deg, #b9adff, #ffb18a, #7df0cd);
+  background: linear-gradient(90deg, #a5b4fc, #818cf8, #6366f1);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -773,7 +773,7 @@ h1, h2, h3 {
 }
 
 .hero-text {
-  color: #b9bfe6;
+  color: #c7d2fe;
   font-size: 15px;
   line-height: 1.7;
   max-width: 440px;
@@ -795,7 +795,7 @@ h1, h2, h3 {
   background: rgba(255, 255, 255, 0.07);
   border: 1px solid rgba(255, 255, 255, 0.16);
   backdrop-filter: blur(6px);
-  color: #dfe3fb;
+  color: #e0e7ff;
   font-size: 12.5px;
   font-weight: 600;
 }
@@ -813,7 +813,7 @@ h1, h2, h3 {
   align-items: center;
   justify-content: center;
   padding: 40px 32px;
-  background: linear-gradient(180deg, #f6f7fd 0%, #eef0fb 100%);
+  background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
   position: relative;
 }
 
@@ -885,7 +885,7 @@ h1, h2, h3 {
   padding: 10px 12px;
   border-radius: var(--radius-sm);
   background: var(--violet-soft);
-  border: 1px solid #e0daf8;
+  border: 1px solid #e0e7ff;
   cursor: pointer;
   transition: border-color 0.15s;
 }
@@ -977,7 +977,7 @@ h1, h2, h3 {
   background:
     radial-gradient(560px 320px at 88% -30%, rgba(255, 107, 74, 0.4), transparent 60%),
     radial-gradient(420px 300px at 8% 130%, rgba(45, 212, 167, 0.35), transparent 60%),
-    linear-gradient(135deg, #121743 0%, #1d2158 55%, #2a1b56 100%);
+    linear-gradient(135deg, #0f172a 0%, #1e1b4b 55%, #312e81 100%);
 }
 
 .hero-strip::after {
@@ -996,7 +996,7 @@ h1, h2, h3 {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1.6px;
-  color: #a9a2ff;
+  color: #a5b4fc;
   margin-bottom: 10px;
 }
 
@@ -1007,7 +1007,7 @@ h1, h2, h3 {
 }
 
 .hero-strip p {
-  color: #b9bfe6;
+  color: #c7d2fe;
   font-size: 13.5px;
   margin-top: 8px;
   max-width: 560px;
@@ -1042,7 +1042,7 @@ h1, h2, h3 {
 
 .stat-pill span {
   font-size: 11px;
-  color: #b9bfe6;
+  color: #c7d2fe;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.8px;
@@ -1217,7 +1217,7 @@ textarea.input {
 .alert-error {
   background: var(--danger-soft);
   color: var(--danger);
-  border: 1px solid #f6cdd3;
+  border: 1px solid #fecaca;
 }
 
 .cards {
@@ -1242,7 +1242,7 @@ textarea.input {
 .card:hover {
   transform: translateY(-3px);
   box-shadow: 0 18px 44px rgba(13, 17, 48, 0.12);
-  border-color: #d5d9f0;
+  border-color: #c7d2fe;
 }
 
 .card-top {
@@ -1487,7 +1487,7 @@ textarea.input {
   z-index: 100;
   background: rgba(255, 255, 255, 0.96);
   backdrop-filter: blur(10px);
-  border-top: 1px solid #d0d7e2;
+  border-top: 1px solid #e2e8f0;
   box-shadow: 0 -6px 28px rgba(13, 17, 48, 0.14);
   display: flex;
   align-items: center;
@@ -1705,7 +1705,7 @@ textarea.input {
 .slider {
   position: absolute;
   inset: 0;
-  background: #c9cfe6;
+  background: #cbd5e1;
   border-radius: 26px;
   transition: background 0.2s;
   cursor: pointer;

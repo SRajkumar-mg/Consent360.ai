@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from time import perf_counter
 from typing import Optional
 
 from sqlalchemy.orm import Session
@@ -87,10 +88,24 @@ def evaluate_decision(
     source_app: str = "",
     persist: bool = True,
     request_id: Optional[str] = None,
+    tenant_id: Optional[int] = None,
 ) -> Decision:
     """Deterministic, rule-based consent decision evaluation."""
-
+    start = perf_counter()
     now = utcnow()
+
+    # R1-05: lawful-basis gateway. If the purpose is not consent-based, the
+    # decision is governed by the lawful basis (S7), not by a consent record.
+    if purpose.lawful_basis != "CONSENT":
+        d = Decision(
+            "ALLOW",
+            f"Purpose {purpose.name} relies on lawful basis {purpose.lawful_basis} "
+            f"(not consent), so consent is not required for this processing.",
+            True,
+            policy=None,
+        )
+        return _finish(d, db, customer, purpose, data_category, processing_activity,
+                       requested_by, source_app, persist, request_id, tenant_id, start)
 
     policy = get_active_policy(db)
     rule = None
@@ -118,7 +133,7 @@ def evaluate_decision(
                 policy_version_number=policy_version_number,
                 policy_version_id=policy_version_id,
             )
-            return _finish(d, db, customer, purpose, data_category, processing_activity, requested_by, source_app, persist, request_id)
+            return _finish(d, db, customer, purpose, data_category, processing_activity, requested_by, source_app, persist, request_id, tenant_id, start)
 
     # Find the most relevant consent record
     consent = (
@@ -144,7 +159,7 @@ def evaluate_decision(
                 policy_version_number=policy_version_number,
                 policy_version_id=policy_version_id,
             )
-            return _finish(d, db, customer, purpose, data_category, processing_activity, requested_by, source_app, persist, request_id)
+            return _finish(d, db, customer, purpose, data_category, processing_activity, requested_by, source_app, persist, request_id, tenant_id, start)
 
         if consent.status == "DENIED":
             d = Decision(
@@ -156,7 +171,7 @@ def evaluate_decision(
                 policy_version_number=policy_version_number,
                 policy_version_id=policy_version_id,
             )
-            return _finish(d, db, customer, purpose, data_category, processing_activity, requested_by, source_app, persist, request_id)
+            return _finish(d, db, customer, purpose, data_category, processing_activity, requested_by, source_app, persist, request_id, tenant_id, start)
 
         expired = consent.expires_at is not None and consent.expires_at <= now
         if consent.status == "EXPIRED" or expired:
@@ -169,9 +184,23 @@ def evaluate_decision(
                 policy_version_number=policy_version_number,
                 policy_version_id=policy_version_id,
             )
-            return _finish(d, db, customer, purpose, data_category, processing_activity, requested_by, source_app, persist, request_id)
+            return _finish(d, db, customer, purpose, data_category, processing_activity, requested_by, source_app, persist, request_id, tenant_id, start)
 
         if consent.status in _active_consent_statuses() and not expired:
+            # R1-09: a material change flagged re_consent_required gates processing
+            # until the principal has explicitly re-consented (status UPDATED reset).
+            if consent.re_consent_required:
+                d = Decision(
+                    "RE_CONSENT_REQUIRED",
+                    "A material change to the consent requires the data principal "
+                    "to re-consent before processing may continue.",
+                    False,
+                    consent=consent,
+                    policy=policy,
+                    policy_version_number=policy_version_number,
+                    policy_version_id=policy_version_id,
+                )
+                return _finish(d, db, customer, purpose, data_category, processing_activity, requested_by, source_app, persist, request_id, tenant_id, start)
             reason = (
                 f"Valid active consent exists for {purpose.name} "
                 f"(status {consent.status}, version {consent.consent_version}) "
@@ -186,7 +215,7 @@ def evaluate_decision(
                 policy_version_number=policy_version_number,
                 policy_version_id=policy_version_id,
             )
-            return _finish(d, db, customer, purpose, data_category, processing_activity, requested_by, source_app, persist, request_id)
+            return _finish(d, db, customer, purpose, data_category, processing_activity, requested_by, source_app, persist, request_id, tenant_id, start)
 
     # No valid consent
     if rule and rule.get("requires_active_consent", True) is False:
@@ -195,7 +224,7 @@ def evaluate_decision(
             f"processing {data_category.name} for {processing_activity.name}."
         )
         d = Decision("ALLOW", reason, True, policy=policy, policy_version_number=policy_version_number, policy_version_id=policy_version_id)
-        return _finish(d, db, customer, purpose, data_category, processing_activity, requested_by, source_app, persist, request_id)
+        return _finish(d, db, customer, purpose, data_category, processing_activity, requested_by, source_app, persist, request_id, tenant_id, start)
 
     if purpose.requires_consent is False:
         reason = (
@@ -203,7 +232,7 @@ def evaluate_decision(
             f"processing {processing_activity.name} on {data_category.name} is permitted."
         )
         d = Decision("ALLOW", reason, True, policy=policy, policy_version_number=policy_version_number, policy_version_id=policy_version_id)
-        return _finish(d, db, customer, purpose, data_category, processing_activity, requested_by, source_app, persist, request_id)
+        return _finish(d, db, customer, purpose, data_category, processing_activity, requested_by, source_app, persist, request_id, tenant_id, start)
 
     d = Decision(
         "REQUIRE_CONSENT",
@@ -214,7 +243,7 @@ def evaluate_decision(
         policy_version_number=policy_version_number,
         policy_version_id=policy_version_id,
     )
-    return _finish(d, db, customer, purpose, data_category, processing_activity, requested_by, source_app, persist, request_id)
+    return _finish(d, db, customer, purpose, data_category, processing_activity, requested_by, source_app, persist, request_id, tenant_id, start)
 
 
 def _finish(
@@ -228,7 +257,10 @@ def _finish(
     source_app: str,
     persist: bool,
     request_id: Optional[str],
+    tenant_id: Optional[int] = None,
+    start_ms: Optional[float] = None,
 ) -> Decision:
+    latency_ms = int((perf_counter() - start_ms) * 1000) if start_ms else 0
     if not persist:
         return d
     log = ConsentDecisionLog(
@@ -247,6 +279,8 @@ def _finish(
         requested_by=requested_by,
         source_app=source_app,
         request_id=request_id,
+        tenant_id=tenant_id if tenant_id is not None else (customer.tenant_id if customer.tenant_id else 1),
+        latency_ms=latency_ms,
         details={"purpose_code": purpose.code, "data_category_code": data_category.code,
                  "processing_activity_code": processing_activity.code},
         evaluated_at=utcnow(),
@@ -269,6 +303,7 @@ def _finish(
         decision=d.decision,
         reason=d.reason,
         request_id=request_id,
+        tenant_id=tenant_id if tenant_id is not None else (customer.tenant_id if customer.tenant_id else 1),
         commit=False,
     )
     db.commit()

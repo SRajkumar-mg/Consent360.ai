@@ -1,5 +1,33 @@
-import { useState } from 'react'
-import { consentApi } from '../api'
+import { useEffect, useState } from 'react'
+import { consentApi, getErrorMessage } from '../api'
+
+export const CODEX_LANG_KEY = 'codex_lang'
+
+const LANGUAGES = [
+  { code: 'as', label: 'অসমীয়া (Assamese)' },
+  { code: 'bn', label: 'বাংলা (Bengali)' },
+  { code: 'brx', label: 'बरʼ (Bodo)' },
+  { code: 'doi', label: 'डोगरी (Dogri)' },
+  { code: 'gu', label: 'ગુજરાતી (Gujarati)' },
+  { code: 'en', label: 'English' },
+  { code: 'hi', label: 'हिन्दी (Hindi)' },
+  { code: 'kn', label: 'ಕನ್ನಡ (Kannada)' },
+  { code: 'ks', label: 'कॉशुर (Kashmiri)' },
+  { code: 'kok', label: 'कोंकणी (Konkani)' },
+  { code: 'mai', label: 'मैथिली (Maithili)' },
+  { code: 'ml', label: 'മലയാളം (Malayalam)' },
+  { code: 'mni', label: 'ꯃꯤꯇꯩꯂꯣꯟ (Manipuri)' },
+  { code: 'mr', label: 'मराठी (Marathi)' },
+  { code: 'ne', label: 'नेपाली (Nepali)' },
+  { code: 'or', label: 'ଓଡ଼ିଆ (Odia)' },
+  { code: 'pa', label: 'ਪੰਜਾਬੀ (Punjabi)' },
+  { code: 'sa', label: 'संस्कृतम् (Sanskrit)' },
+  { code: 'sat', label: 'ᱥᱟᱱᱛᱟᱲᱤ (Santali)' },
+  { code: 'sd', label: 'سنڌي (Sindhi)' },
+  { code: 'ta', label: 'தமிழ் (Tamil)' },
+  { code: 'te', label: 'తెలుగు (Telugu)' },
+  { code: 'ur', label: 'اردو (Urdu)' },
+]
 
 const CAT_COLORS: Record<string, string> = {
   necessary: '#64748b',
@@ -37,16 +65,39 @@ interface CookieBannerProps {
 export function CookieBanner({ customerId, onClose }: CookieBannerProps) {
   const [showOptions, setShowOptions] = useState(false)
   const [cats, setCats] = useState<Record<string, boolean>>({ ...DEFAULT_CATS })
+  const [lang, setLang] = useState(() => localStorage.getItem(CODEX_LANG_KEY) ?? 'en')
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    let cancelled = false
+    consentApi
+      .getPreferences(customerId)
+      .then((res) => {
+        if (cancelled) return
+        const p = (res.data?.preferences ?? {}) as { lang?: string; categories?: Record<string, boolean> }
+        if (p.categories && Object.keys(p.categories).length) setCats({ ...DEFAULT_CATS, ...p.categories, necessary: true })
+        if (p.lang && LANGUAGES.some((l) => l.code === p.lang)) setLang(p.lang)
+      })
+      .catch(() => {
+        /* no saved preferences yet - use defaults */
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [customerId])
 
   const save = async (categories: Record<string, boolean>) => {
     setSaving(true)
+    setError('')
     try {
-      await consentApi.savePreferences(customerId, { lang: 'en', categories })
-    } catch {
-      /* preferences could not be saved - continue anyway */
+      await consentApi.savePreferences(customerId, { lang, categories })
+      localStorage.setItem(CODEX_LANG_KEY, lang)
+      onClose()
+    } catch (err) {
+      setError(getErrorMessage(err))
+      setSaving(false)
     }
-    onClose()
   }
 
   return (
@@ -66,6 +117,22 @@ export function CookieBanner({ customerId, onClose }: CookieBannerProps) {
               platform is used. You can accept all cookies or choose which categories to allow.
             </p>
           </div>
+        </div>
+
+        <div className="form-group cookie-lang">
+          <label htmlFor="cx-consent-lang">Choose language</label>
+          <select
+            id="cx-consent-lang"
+            className="input"
+            value={lang}
+            onChange={(e) => setLang(e.target.value)}
+          >
+            {LANGUAGES.map((l) => (
+              <option key={l.code} value={l.code}>
+                {l.label}
+              </option>
+            ))}
+          </select>
         </div>
 
         {showOptions && (
@@ -95,6 +162,8 @@ export function CookieBanner({ customerId, onClose }: CookieBannerProps) {
             ))}
           </div>
         )}
+
+        {error && <div className="alert alert-error">{error}</div>}
 
         <div className="consent-banner-actions">
           <button className="btn btn-primary" disabled={saving} onClick={() => save({ ...ALL_CATS })}>

@@ -5,16 +5,29 @@ export const SKILL_LANG_KEY = 'skilllearn_lang'
 const COOKIE_CONSENT_KEY = 'skilllearn_cookie_consent'
 
 const LANGUAGES = [
+  { code: 'as', label: 'অসমীয়া (Assamese)' },
+  { code: 'bn', label: 'বাংলা (Bengali)' },
+  { code: 'brx', label: 'बरʼ (Bodo)' },
+  { code: 'doi', label: 'डोगरी (Dogri)' },
+  { code: 'gu', label: 'ગુજરાતી (Gujarati)' },
   { code: 'en', label: 'English' },
   { code: 'hi', label: 'हिन्दी (Hindi)' },
+  { code: 'kn', label: 'ಕನ್ನಡ (Kannada)' },
+  { code: 'ks', label: 'कॉशुर (Kashmiri)' },
+  { code: 'kok', label: 'कोंकणी (Konkani)' },
+  { code: 'mai', label: 'मैथिली (Maithili)' },
+  { code: 'ml', label: 'മലയാളം (Malayalam)' },
+  { code: 'mni', label: 'ꯃꯤꯇꯩꯂꯣꯟ (Manipuri)' },
+  { code: 'mr', label: 'मराठी (Marathi)' },
+  { code: 'ne', label: 'नेपाली (Nepali)' },
+  { code: 'or', label: 'ଓଡ଼ିଆ (Odia)' },
+  { code: 'pa', label: 'ਪੰਜਾਬੀ (Punjabi)' },
+  { code: 'sa', label: 'संस्कृतम् (Sanskrit)' },
+  { code: 'sat', label: 'ᱥᱟᱱᱛᱟᱲᱤ (Santali)' },
+  { code: 'sd', label: 'سنڌي (Sindhi)' },
   { code: 'ta', label: 'தமிழ் (Tamil)' },
   { code: 'te', label: 'తెలుగు (Telugu)' },
-  { code: 'kn', label: 'ಕನ್ನಡ (Kannada)' },
-  { code: 'ml', label: 'മലയാളം (Malayalam)' },
-  { code: 'bn', label: 'বাংলা (Bengali)' },
-  { code: 'mr', label: 'मराठी (Marathi)' },
-  { code: 'gu', label: 'ગુજરાતી (Gujarati)' },
-  { code: 'pa', label: 'ਪੰਜਾਬੀ (Punjabi)' },
+  { code: 'ur', label: 'اردو (Urdu)' },
 ]
 
 interface CategoryDef {

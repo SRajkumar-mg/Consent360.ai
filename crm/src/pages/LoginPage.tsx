@@ -17,7 +17,7 @@ export function LoginPage() {
     e.preventDefault()
     setError('')
     if (!ageVerified) {
-      setError('You must confirm you are 18 years or older to use JobHub')
+      setError('You must confirm you are 18 years or older to continue')
       return
     }
     if (!name.trim()) { setError('Please enter your name'); return }
@@ -55,12 +55,12 @@ export function LoginPage() {
       <div className="login-card">
         <div className="login-logo">
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
-            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+            <path d="M12 2l8 4v6c0 5.25-3.4 9.25-8 10-4.6-.75-8-4.75-8-10V6l8-4z" />
+            <path d="M9 12l2 2 4-4" />
           </svg>
         </div>
-        <h1>Welcome to JobHub</h1>
-        <p className="subtitle">Sign in to explore opportunities and manage your career</p>
+        <h1>Welcome to Consent360</h1>
+        <p className="subtitle">Sign in to manage your account and privacy preferences</p>
         <form onSubmit={submit} className="form-stack">
           {error && <div className="alert alert-error">{error}</div>}
           <div className="form-group">

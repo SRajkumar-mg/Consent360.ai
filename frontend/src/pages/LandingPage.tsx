@@ -9,17 +9,17 @@ export function LandingPage() {
           <div className="logo-badge" style={{ width: 44, height: 44, fontSize: 20 }}><Consent360Logo size={20} /></div>
           <div>
             <div style={{ fontSize: 20, fontWeight: 700 }}>Consent Management Platform</div>
-            <div style={{ fontSize: 12.5, color: '#9fb0d4' }}>Enterprise Consent &amp; Privacy Management</div>
+            <div style={{ fontSize: 12.5, color: '#a5b4fc' }}>Enterprise Consent &amp; Privacy Management</div>
           </div>
         </div>
         <h1 style={{ fontSize: 28, lineHeight: 1.3, maxWidth: 480 }}>
-          Centralize consent. <span style={{ color: '#8aa2ff' }}>Prove compliance.</span>
+          Centralize consent. <span style={{ color: '#a5b4fc' }}>Prove compliance.</span>
         </h1>
         <p style={{ marginTop: 16, color: '#b9c4da', maxWidth: 460, fontSize: 14, lineHeight: 1.6 }}>
           Manage the full consent lifecycle for every customer — grant, deny, withdraw, renew,
           evaluate processing decisions and maintain a tamper-evident audit trail.
         </p>
-        <div style={{ display: 'flex', gap: 24, marginTop: 36, fontSize: 12.5, color: '#9fb0d4' }}>
+        <div style={{ display: 'flex', gap: 24, marginTop: 36, fontSize: 12.5, color: '#a5b4fc' }}>
           <span>✓ Consent Lifecycle</span>
           <span>✓ Decision Engine</span>
           <span>✓ Immutable Audit</span>

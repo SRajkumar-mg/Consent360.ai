@@ -1,11 +1,14 @@
 from fastapi import APIRouter, Depends, Query
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_org_scope, require_permission
 from app.core.database import get_db
 from app.core.rbac import PERM_AUDIT_VIEW
+from app.core.utils import get_request_id, log_audit
 from app.models.entities import AuditLog, Customer, User
 from app.schemas.schemas import AuditEventOut
+from app.services.audit_chain import verify_chain
 
 router = APIRouter(prefix="/audit", tags=["audit"])
 
@@ -21,10 +24,19 @@ def list_audit_events(
     db: Session = Depends(get_db),
     user: User = Depends(require_permission(PERM_AUDIT_VIEW)),
 ):
+    log_audit(db, "AUDIT_QUERY", actor_username=user.username,
+              actor_role=user.role.name if user.role else "",
+              source_app="UI", reason="Audit log queried",
+              request_id=get_request_id(),
+              metadata={"customer_name": customer_name, "purpose_code": purpose_code,
+                        "date_from": date_from, "date_to": date_to,
+                        "returned_count": limit})
     scope = get_org_scope(user)
     q = db.query(AuditLog).order_by(AuditLog.created_at.desc())
     if scope:
-        q = q.filter(AuditLog.source_app == scope)
+        # R1-02: prefer the tenant scope; fall back to source_app when the
+        # staff user is org-scoped by source_app (backward compatibility).
+        q = q.filter((AuditLog.tenant_id == getattr(user, "tenant_id", None)) | (AuditLog.source_app == scope))
     if customer_name:
         name_lower = f"%{customer_name}%".lower()
         matching_customer_ids = [
@@ -44,6 +56,38 @@ def list_audit_events(
     return [AuditEventOut.model_validate(e) for e in events]
 
 
+@router.get("/verify-chain")
+def verify_ledger(db: Session = Depends(get_db), _: User = Depends(require_permission(PERM_AUDIT_VIEW))):
+    """R1-02: report whether the audit ledger hash-chain is intact."""
+    return verify_chain(db)
+
+
+@router.get("/export")
+def export_audit(
+    date_from: str = Query(default=None),
+    date_to: str = Query(default=None),
+    db: Session = Depends(get_db),
+    user: User = Depends(require_permission(PERM_AUDIT_VIEW)),
+):
+    """R1-11: export audit events and the ledger chain validity as JSON Lines."""
+    scope = get_org_scope(user)
+    q = db.query(AuditLog).order_by(AuditLog.created_at.desc())
+    if scope:
+        q = q.filter((AuditLog.tenant_id == getattr(user, "tenant_id", None)) | (AuditLog.source_app == scope))
+    if date_from:
+        q = q.filter(AuditLog.created_at >= date_from)
+    if date_to:
+        q = q.filter(AuditLog.created_at <= date_to)
+    events = q.all()
+    chain = verify_chain(db)
+    lines = [AuditEventOut.model_validate(e).model_dump(mode="json") for e in events]
+    # JSON Lines response with a trailing chain marker
+    import json as _json
+    body = "\n".join(_json.dumps(e, default=str) for e in lines)
+    chain_line = _json.dumps({"__ledger_chain__": chain})
+    return Response(content=body + "\n" + chain_line + "\n", media_type="application/x-ndjson")
+
+
 @router.get("/events")
 def list_event_types(_: User = Depends(require_permission(PERM_AUDIT_VIEW))):
     from app.models.entities import AUDIT_EVENTS
@@ -52,6 +96,10 @@ def list_event_types(_: User = Depends(require_permission(PERM_AUDIT_VIEW))):
 
 
 @router.get("/actors")
-def list_actors(db: Session = Depends(get_db), _: User = Depends(require_permission(PERM_AUDIT_VIEW))):
+def list_actors(db: Session = Depends(get_db), user: User = Depends(require_permission(PERM_AUDIT_VIEW))):
+    log_audit(db, "ACTOR_LIST", actor_username=user.username,
+              actor_role=user.role.name if user.role else "",
+              source_app="UI", reason="Actor list retrieved",
+              request_id=get_request_id())
     rows = db.query(AuditLog.actor_username).distinct().order_by(AuditLog.actor_username).all()
     return [r[0] for r in rows]

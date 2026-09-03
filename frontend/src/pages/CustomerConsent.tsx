@@ -273,7 +273,7 @@ export function CustomerConsentPage() {
                     <tr key={c.id}>
                       <td>{c.data_category_name}</td>
                       <td>{c.processing_activity_name}</td>
-                      <td><Badge status={c.status} /></td>
+                      <td><Badge status={c.status} />{c.re_consent_required && <div className="mt-sm"><Badge status="REQUESTED">re-consent</Badge></div>}</td>
                       <td className="muted">{formatDate(c.granted_at)}</td>
                       <td className="muted">{formatDate(c.expires_at)}</td>
                       <td className="muted">v{c.consent_version}</td>

@@ -31,7 +31,9 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from sqlalchemy import String, Text, TypeDecorator
 from sqlalchemy.dialects.postgresql import JSONB
 
-_log = logging.getLogger("consent360.encryption")
+from app.core.utils import make_logger
+
+_log = make_logger("consent360.encryption")
 
 _NONCE_BYTES = 12  # 96-bit nonce recommended for GCM
 
@@ -50,9 +52,17 @@ def _load_key() -> AESGCM | None:
 
     b64_key = get_settings().FIELD_ENCRYPTION_KEY
     if not b64_key:
+        from app.core.config import get_settings as _gs
+        _s = _gs()
+        if _s.ENVIRONMENT == "production" or _s.PRODUCTION_FAIL_CLOSED:
+            raise RuntimeError(
+                "FIELD_ENCRYPTION_KEY is not set. Refusing to start in production mode. "
+                "Set FIELD_ENCRYPTION_KEY in your environment to a base64-encoded AES-256 key."
+            )
         _log.warning(
             "FIELD_ENCRYPTION_KEY is not set — field-level encryption is disabled "
-            "and sensitive columns are stored in plaintext."
+            "and sensitive columns are stored in plaintext. "
+            "This is ONLY acceptable in development mode."
         )
         return None
     raw = base64.urlsafe_b64decode(b64_key)
@@ -129,21 +139,27 @@ def is_encryption_enabled() -> bool:
 def hmac_digest(plaintext: str | None) -> str | None:
     """Compute HMAC-SHA256 digest of a plaintext value for equality lookups.
 
-    The digest is deterministic (same input → same output), unlike AES-GCM
-    ciphertext.  Store this alongside the encrypted column so that
-    ``WHERE digest = hmac_digest(:value)`` works for equality queries.
+    Uses a separate HMAC key if HMAC_SEARCH_KEY is configured, otherwise falls
+    back to the encryption key. The digest is deterministic (same input -> same output).
     """
     if plaintext is None or plaintext == "":
         return plaintext
     import hashlib
     import hmac as _hmac
     from app.core.config import get_settings
-    aes = _load_key()
-    if aes is None:
+    settings = get_settings()
+    key_source = settings.HMAC_SEARCH_KEY or settings.FIELD_ENCRYPTION_KEY
+    if not key_source:
         return plaintext.lower().strip()
-    raw_key = base64.urlsafe_b64decode(get_settings().FIELD_ENCRYPTION_KEY)
+    raw_key = base64.urlsafe_b64decode(key_source) if len(key_source) > 32 else key_source.encode("utf-8")
     normalized = plaintext.lower().strip().encode("utf-8")
     return _hmac.new(raw_key, normalized, hashlib.sha256).hexdigest()
+
+
+def hmac_search_key_is_configured() -> bool:
+    """Check if a separate HMAC search key is configured."""
+    from app.core.config import get_settings
+    return bool(get_settings().HMAC_SEARCH_KEY)
 
 
 # --------------------------------------------------------------------------- #

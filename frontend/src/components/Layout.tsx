@@ -4,8 +4,9 @@ import { usePageTitle } from '../hooks/usePageTitle'
 import { Consent360Logo } from './Logo'
 import { Chatbot } from './Chatbot'
 import {
-  IconAdmin, IconApi, IconAudit, IconCustomers, IconDashboard, IconLogout, IconPolicy, IconPurpose,
-  IconShield,
+  IconAdmin, IconApi, IconAudit, IconBreach, IconCustomers, IconDashboard, IconDownload,
+  IconGlobe, IconKey, IconLogout, IconNotification, IconPolicy, IconProcessor, IconPurpose,
+  IconShield, IconUsers,
 } from './icons'
 
 const NAV = [
@@ -13,7 +14,15 @@ const NAV = [
   { label: 'Customers', icon: IconCustomers, path: '/customers', perm: 'customer.view' },
   { label: 'Consent Purposes', icon: IconPurpose, path: '/purposes', perm: 'purpose.view' },
   { label: 'Policies', icon: IconPolicy, path: '/policies', perm: 'policy.view' },
-  { label: 'Audit Explorer', icon: IconAudit, path: '/audit', perm: 'audit.view' },
+  { label: 'Audit Explorer', icon: IconAudit, path: '/audit', exact: true, perm: 'audit.view' },
+  { label: 'Audit Ledger', icon: IconDownload, path: '/audit/chain', perm: 'audit.view' },
+  { label: 'Notices', icon: IconGlobe, path: '/notices', perm: 'notice.manage' },
+  { label: 'Tenant Settings', icon: IconUsers, path: '/tenants/settings', perm: 'tenant.manage' },
+  { label: 'Rights & Erasure', icon: IconShield, path: '/rights', perm: 'rights.manage' },
+  { label: 'Reports', icon: IconPurpose, path: '/reports', perm: 'reports.view' },
+  { label: 'Breach Register', icon: IconBreach, path: '/breaches', perm: 'user.manage' },
+  { label: 'Processors', icon: IconProcessor, path: '/processors', perm: 'user.manage' },
+  { label: 'Notifications', icon: IconNotification, path: '/notifications', perm: 'user.manage' },
 ]
 
 function NavItem({ item, pathname }: { item: (typeof NAV)[number]; pathname: string }) {
@@ -47,12 +56,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <div className="sidebar-brand">
           <div className="logo-badge"><Consent360Logo size={18} /></div>
           <div>
-            Consent<span style={{ color: '#8aa2ff' }}>360</span>
+            Consent<span style={{ color: 'var(--primary-accent)' }}>360</span>
           </div>
         </div>
         <nav className="sidebar-nav">
           {isOrgAdmin && (
-            <div className="nav-group" style={{ color: '#6b7899', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', padding: '4px 12px 6px' }}>
+            <div className="nav-group" style={{ padding: '4px 12px 6px' }}>
               {orgLabel} Admin
             </div>
           )}
@@ -66,6 +75,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <Link to="/administration" className={`nav-item ${pathname.startsWith('/administration') ? 'active' : ''}`}>
                 <IconAdmin /> <span>Administration</span>
               </Link>
+              <Link to="/tenants" className={`nav-item ${pathname === '/tenants' ? 'active' : ''}`}>
+                <IconKey /> <span>Tenants &amp; API Keys</span>
+              </Link>
               <Link to="/api-reference" className={`nav-item ${pathname.startsWith('/api-reference') ? 'active' : ''}`}>
                 <IconApi /> <span>API &amp; SDKs</span>
               </Link>
@@ -77,7 +89,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </nav>
         <div className="sidebar-footer">
           <div style={{ marginBottom: 6 }}>Signed in as {user?.username}</div>
-          <div style={{ color: '#6b7899' }}>{user?.role_name?.replace(/_/g, ' ')}</div>
+          <div>{user?.role_name?.replace(/_/g, ' ')}</div>
         </div>
       </aside>
       <div className="main">

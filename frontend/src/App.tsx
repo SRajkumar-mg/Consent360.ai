@@ -15,6 +15,15 @@ import { AdministrationPage } from './pages/Administration'
 import { OrganizationsPage } from './pages/Organizations'
 import { ApiReferencePage } from './pages/ApiReference'
 import { ContextLandingPage } from './pages/ContextLanding'
+import { TenantSettingsPage } from './pages/TenantSettings'
+import { NoticesPage } from './pages/Notices'
+import { AuditChainPage } from './pages/AuditChain'
+import { ReportsPage } from './pages/Reports'
+import { RightsPage } from './pages/Rights'
+import { BreachesPage } from './pages/Breaches'
+import { ProcessorsPage } from './pages/Processors'
+import { NotificationsPage } from './pages/Notifications'
+import { TenantsPage } from './pages/Tenants'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -46,11 +55,20 @@ export default function App() {
             <Route path="/consent/:consentId" element={<Shell><ConsentDetailPage /></Shell>} />
             <Route path="/consent/context/:token" element={<Shell><ContextLandingPage /></Shell>} />
             <Route path="/audit" element={<Shell><AuditExplorerPage /></Shell>} />
+            <Route path="/audit/chain" element={<Shell><AuditChainPage /></Shell>} />
             <Route path="/purposes" element={<Shell><PurposesPage /></Shell>} />
+            <Route path="/notices" element={<Shell><NoticesPage /></Shell>} />
+            <Route path="/tenants" element={<Shell><TenantsPage /></Shell>} />
+            <Route path="/tenants/settings" element={<Shell><TenantSettingsPage /></Shell>} />
+            <Route path="/reports" element={<Shell><ReportsPage /></Shell>} />
+            <Route path="/rights" element={<Shell><RightsPage /></Shell>} />
             <Route path="/policies" element={<Shell><PoliciesPage /></Shell>} />
             <Route path="/administration" element={<Shell><AdministrationPage /></Shell>} />
             <Route path="/organizations" element={<Shell><OrganizationsPage /></Shell>} />
             <Route path="/api-reference" element={<Shell><ApiReferencePage /></Shell>} />
+            <Route path="/breaches" element={<Shell><BreachesPage /></Shell>} />
+            <Route path="/processors" element={<Shell><ProcessorsPage /></Shell>} />
+            <Route path="/notifications" element={<Shell><NotificationsPage /></Shell>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>

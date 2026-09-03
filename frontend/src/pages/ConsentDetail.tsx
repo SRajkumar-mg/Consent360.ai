@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { consentsApi } from '../api'
+import { consentsApi, sharingEventsApi } from '../api'
 import { Badge, Spinner, formatDateTime, daysUntil } from '../components/ui'
-import type { ConsentDetail, ConsentEvidence, ConsentHistory } from '../types'
+import type { ConsentDetail, ConsentEvidence, ConsentHistory, SharingEvent } from '../types'
 
 function timelineTone(h: ConsentHistory) {
   const to = h.to_status
@@ -17,9 +17,14 @@ export function ConsentDetailPage() {
   const { consentId } = useParams()
   const [data, setData] = useState<ConsentDetail | null>(null)
   const [error, setError] = useState('')
+  const [sharing, setSharing] = useState<SharingEvent[]>([])
 
   useEffect(() => {
-    consentsApi.detail(Number(consentId)).then((r) => setData(r.data)).catch(() => setError('Consent not found'))
+    consentsApi.detail(Number(consentId)).then((r) => {
+      setData(r.data)
+      const id = r.data.consent.id
+      if (id) sharingEventsApi.list(id).then((s) => setSharing(s.data)).catch(() => setSharing([]))
+    }).catch(() => setError('Consent not found'))
   }, [consentId])
 
   if (error) return <div className="alert alert-error">{error}</div>
@@ -39,6 +44,14 @@ export function ConsentDetailPage() {
         </div>
         <Badge status={c.status} />
       </div>
+
+      {c.re_consent_required && (
+        <div className="alert alert-warning mb">
+          <b>Re-consent required</b> — a material change was published to this purpose{' '}
+          {c.re_consent_requested_at ? `on ${formatDateTime(c.re_consent_requested_at)}` : ''}. Processing is blocked
+          until fresh consent is captured.
+        </div>
+      )}
 
       <div className="grid-2 mb">
         <div className="card">
@@ -116,6 +129,49 @@ export function ConsentDetailPage() {
               ))}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <div className="grid-2 mb" style={{ marginTop: 16 }}>
+        <div className="card">
+          <div className="card-header"><h3>Consent Receipts</h3></div>
+          <div className="table-wrap">
+            <table className="table">
+              <thead><tr><th>Receipt No</th><th>Method</th><th>Issued at</th><th>Payload hash</th></tr></thead>
+              <tbody>
+                {!data.receipts || data.receipts.length === 0 ? (
+                  <tr><td colSpan={4} className="empty">No receipts — a receipt is generated on every grant/renewal</td></tr>
+                ) : data.receipts.map((r) => (
+                  <tr key={r.id}>
+                    <td className="mono">{r.receipt_number}</td>
+                    <td>{r.method}</td>
+                    <td className="text-sm muted">{formatDateTime(r.issued_at)}</td>
+                    <td className="mono text-xs">{r.payload_hash.slice(0, 16)}…</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-header"><h3>Data Sharing Events</h3></div>
+          <div className="table-wrap">
+            <table className="table">
+              <thead><tr><th>Type</th><th>Processor</th><th>Occurred at</th></tr></thead>
+              <tbody>
+                {sharing.length === 0 ? (
+                  <tr><td colSpan={3} className="empty">No sharing events logged for this consent</td></tr>
+                ) : sharing.map((s) => (
+                  <tr key={s.id}>
+                    <td><Badge status={s.event_type} /></td>
+                    <td className="mono">{s.processor_id}</td>
+                    <td className="text-sm muted">{formatDateTime(s.occurred_at)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>

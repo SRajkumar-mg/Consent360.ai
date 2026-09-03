@@ -27,6 +27,7 @@ from app.schemas.schemas import (
     ConsentEvidenceOut,
     ConsentHistoryOut,
     ConsentOut,
+    ConsentReceiptOut,
     CustomerConsentSummary,
 )
 from app.services import consent as consent_service
@@ -393,7 +394,8 @@ def consent_detail(consent_id: int, db: Session = Depends(get_db),
     db.commit()
     history = [ConsentHistoryOut.model_validate(h) for h in consent.history]
     evidence = [ConsentEvidenceOut.model_validate(e) for e in consent.evidence]
-    return ConsentDetailOut(consent=_consent_out(consent), history=history, evidence=evidence)
+    receipts = [ConsentReceiptOut.model_validate(r) for r in consent.receipts or []]
+    return ConsentDetailOut(consent=_consent_out(consent), history=history, evidence=evidence, receipts=receipts)
 
 
 def _get_consent_or_404(db: Session, consent_id: int, scope: str | None = None) -> Consent:
@@ -418,6 +420,11 @@ def grant(consent_id: int, action: ConsentAction, db: Session = Depends(get_db),
         source_app="UI",
         collection_method=action.collection_method or "UI",
         consent_text=action.consent_text,
+        client_context=action.client_context,
+        ip_address=action.ip_address,
+        affirmative_action=action.affirmative_action,
+        evidence_reference=action.evidence_reference,
+        tenant_id=consent.tenant_id,
     )
     consent_service.activate_consent(db, result, actor_username=current_user.username, source_app="UI")
     return _consent_out(result)
@@ -458,6 +465,10 @@ def renew(consent_id: int, action: ConsentAction, db: Session = Depends(get_db),
         actor_username=current_user.username,
         source_app="UI",
         collection_method=action.collection_method or "UI",
+        client_context=action.client_context,
+        ip_address=action.ip_address,
+        affirmative_action=action.affirmative_action,
+        tenant_id=consent.tenant_id,
     )
     consent_service.activate_consent(db, result, actor_username=current_user.username, source_app="UI")
     return _consent_out(result)

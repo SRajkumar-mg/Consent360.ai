@@ -96,7 +96,7 @@ export function App() {
       <button
         className="consent-fab"
         onClick={() => {
-          if (!consent.contextToken) {
+          if (!consent.contextToken && !consent.isAnonymous) {
             consent.initConsent()
           } else {
             consent.setShowBanner(true)
@@ -105,14 +105,15 @@ export function App() {
         title="Manage your consent preferences"
       >
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v0c0 6 8 10 8 10z"/>
           <path d="M9 12l2 2 4-4"/>
         </svg>
       </button>
 
       {/* Consent Banner */}
-      {consent.showBanner && consent.contextToken && (
+      {consent.showBanner && (consent.contextToken || consent.isAnonymous) && (
         <ConsentBanner
+          isAnonymous={consent.isAnonymous}
           purposes={consent.purposes}
           onGrant={consent.grantPurpose}
           onWithdraw={consent.withdrawPurpose}

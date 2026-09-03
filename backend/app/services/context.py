@@ -92,6 +92,13 @@ def create_context_for_customer(
             customer.phone = phone
         if status:
             customer.status = status
+        # R3-05: If customer exists but is not verified, require verification
+        # before issuing a portal-usable token.
+        if not customer.identity_verified_at:
+            raise HTTPException(
+                status_code=403,
+                detail="Customer identity must be verified via OTP or fiduciary assertion before a context token can be issued",
+            )
         log_audit(db, "CUSTOMER_UPDATED", actor_username=created_by, source_app=source_app,
                   customer_id=customer.id, customer_external_id=customer.external_id,
                   reason="Customer context refreshed from integration")
@@ -100,6 +107,7 @@ def create_context_for_customer(
     context = ConsentContext(
         customer_id=customer.id,
         token=token,
+        token_hash=hashlib.sha256(token.encode("utf-8")).hexdigest(),
         source_app=source_app,
         request_id=request_id,
         created_by=created_by,

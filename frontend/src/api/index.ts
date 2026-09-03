@@ -20,13 +20,33 @@ import type {
   ConsentEvidence,
   Policy,
   PolicyRulePayload,
+  Tenant,
+  Notice,
+  AuditChainResult,
+  LawfulGatewayReport,
+  DecisionsReport,
+  ComplianceEvidencePack,
+  Objection,
+  ErasureJob,
+  SharingEvent,
+  ApiKey,
+  ApiKeyCreateResponse,
+  MfaEnrollResponse,
+  NotificationTemplate,
+  Notification,
+  Processor,
+  ProcessorAlert,
+  ContractCoverageReport,
+  Breach,
+  BreachNotification,
+  BoardReport,
 } from '../types'
 
 const authHeaders = () => ({})
 
 export const authApi = {
-  login: (username: string, password: string) =>
-    api.post<LoginResponse>('/auth/login', { username, password }),
+  login: (username: string, password: string, otp_code?: string) =>
+    api.post<LoginResponse>('/auth/login', { username, password, otp_code }),
   refresh: (refresh_token: string) =>
     api.post<LoginResponse>('/auth/refresh', { refresh_token }),
   me: () => api.get<User>('/auth/me'),
@@ -51,7 +71,8 @@ export const integrationApi = {
     api.post<ContextResponse>(
       '/consent/customer-context',
       data,
-      { headers: { 'X-API-Key': (import.meta.env.VITE_INTEGRATION_API_KEY as string) || 'dev-demo-integration-key-2026' } },
+      // R3-01: tenant-bound API keys - no hardcoded shared-secret fallback.
+      { headers: { 'X-API-Key': (import.meta.env.VITE_INTEGRATION_API_KEY as string) || '' } },
     ),
   consumeContext: (token: string) => api.get<{ customer: Customer; token_type: string }>(`/consent/context/consume/${token}`),
 }
@@ -155,4 +176,139 @@ export const organizationsApi = {
     ),
   getRoles: (orgId: number) =>
     api.get<{ value: string; label: string; description: string }[]>(`/organizations/${orgId}/roles`),
+}
+
+// ---- R1-01 / R3-01: tenants + tenant-bound API key management ----
+export const tenantsApi = {
+  list: () => api.get<Tenant[]>('/tenants'),
+  get: (id: number) => api.get<Tenant>(`/tenants/${id}`),
+  create: (data: Record<string, unknown>) => api.post<Tenant>('/tenants', data),
+  update: (id: number, data: Record<string, unknown>) => api.patch<Tenant>(`/tenants/${id}`, data),
+  listApiKeys: (tenantId: number) =>
+    api.get<ApiKey[]>(`/tenants/${tenantId}/api-keys`),
+  createApiKey: (tenantId: number, data: { name?: string; scopes?: string; expires_in_days?: number | null }) =>
+    api.post<ApiKeyCreateResponse>(`/tenants/${tenantId}/api-keys`, data),
+  rotateApiKey: (tenantId: number, keyId: number) =>
+    api.post<ApiKeyCreateResponse>(`/tenants/${tenantId}/api-keys/${keyId}/rotate`),
+  revokeApiKey: (tenantId: number, keyId: number) =>
+    api.delete<{ deleted: boolean; key_id: number }>(`/tenants/${tenantId}/api-keys/${keyId}`),
+}
+
+// ── R3-02: MFA ──────────────────────────────────────────────────────────────
+export const mfaApi = {
+  enroll: () => api.post<MfaEnrollResponse>('/auth/mfa/enroll'),
+  verify: (otp_code: string) =>
+    api.post<{ mfa_verified: boolean }>('/auth/mfa/verify', { otp_code }),
+  recoveryCodes: () =>
+    api.get<{ recovery_codes: string[]; count: number }>('/auth/mfa/recovery-codes'),
+}
+
+// ── R3-06: Notifications ────────────────────────────────────────────────────
+export const notificationsApi = {
+  listTemplates: (tenantId?: number) =>
+    api.get<NotificationTemplate[]>('/notifications/templates', { params: tenantId ? { tenant_id: tenantId } : {} }),
+  createTemplate: (data: {
+    tenant_id: number; event_type: string; channel: string;
+    language?: string; subject?: string; body: string
+  }) => api.post<NotificationTemplate>('/notifications/templates', data),
+  listPending: () => api.get<Notification[]>('/notifications/pending'),
+  retry: () => api.post<{ retried: number }>('/notifications/retry'),
+}
+
+// ── R3-07: Processors ───────────────────────────────────────────────────────
+export const processorsApi = {
+  list: (tenantId?: number) =>
+    api.get<Processor[]>('/processors', { params: tenantId ? { tenant_id: tenantId } : {} }),
+  create: (data: {
+    tenant_id: number; name: string; type?: string; country?: string;
+    contact?: string; contract_ref?: string; webhook_url?: string; webhook_secret?: string
+  }) => api.post<Processor>('/processors', data),
+  listAlerts: (processorId: number) =>
+    api.get<ProcessorAlert[]>(`/processors/${processorId}/alerts`),
+  notifyErasure: (customerId: number, processorIds: number[]) =>
+    api.post<{ alerts_sent: number }>('/processors/notify-erasure', null, {
+      params: { customer_id: customerId, processor_ids: processorIds },
+    }),
+  checkEscalations: () =>
+    api.post<{ escalated: number }>('/processors/check-escalations'),
+  contractCoverage: (tenantId?: number) =>
+    api.get<ContractCoverageReport>('/processors/reports/contract-coverage', {
+      params: tenantId ? { tenant_id: tenantId } : {},
+    }),
+}
+
+// ── R3-08: Breaches ─────────────────────────────────────────────────────────
+export const breachesApi = {
+  list: (params?: { tenant_id?: number; status?: string }) =>
+    api.get<Breach[]>('/breaches', { params }),
+  create: (data: {
+    tenant_id: number; breach_type: string; detected_at: string; aware_at: string;
+    nature?: string; extent?: string; timing?: string; location?: string;
+    likely_impact?: string; cause?: string; mitigation?: string;
+    remedial_measures?: string; findings_on_actor?: string
+  }) => api.post<Breach>('/breaches', data),
+  listNotifications: (breachId: number) =>
+    api.get<BreachNotification[]>(`/breaches/${breachId}/notifications`),
+  boardReport: (breachId: number) =>
+    api.get<BoardReport>(`/breaches/${breachId}/board-report`),
+  notifyPrincipal: (breachId: number, customerId: number, recipientEmail: string) =>
+    api.post<{ sent: boolean }>(`/breaches/${breachId}/notify-principal`, null, {
+      params: { customer_id: customerId, recipient_email: recipientEmail },
+    }),
+  createExtensionRequest: (breachId: number, data: {
+    clock_type: string; reason: string; new_deadline_at?: string
+  }) => api.post<{ created: boolean; id: number }>(`/breaches/${breachId}/extension-requests`, data),
+  updateStatus: (breachId: number, newStatus: string) =>
+    api.put<{ updated: boolean; status: string }>(`/breaches/${breachId}/status`, null, {
+      params: { new_status: newStatus },
+    }),
+}
+
+// ---- R1-04: notices ----
+export const noticesApi = {
+  list: () => api.get<Notice[]>('/notices'),
+  create: (data: { tenant_id: number; purpose_id: number }) => api.post<Notice>('/notices', data),
+  addVersion: (data: {
+    notice_id: number
+    version_number: number
+    language: string
+    title: string
+    body: string
+    retention_text?: string
+    services_enabled?: string
+    is_current?: boolean
+  }) => api.post<Notice>('/notices/versions', data),
+}
+
+// ---- R1-02 / R1-11: audit chain + export ----
+export const auditChainApi = {
+  verify: () => api.get<AuditChainResult>('/audit/verify-chain'),
+  export: (params: { date_from?: string; date_to?: string }) =>
+    api.get('/audit/export', { params, responseType: 'blob' }),
+}
+
+// ---- R1-05 / R1-11: reports ----
+export const reportsApi = {
+  lawfulGateway: () => api.get<LawfulGatewayReport>('/lawful-gateway'),
+  decisions: (params: { date_from?: string; date_to?: string }) =>
+    api.get<DecisionsReport>('/decisions', { params }),
+  complianceEvidencePack: () => api.get<ComplianceEvidencePack>('/compliance-evidence-pack'),
+}
+
+// ---- R1-06 / R1-08: rights ----
+export const rightsApi = {
+  listObjections: (customerId?: number) =>
+    api.get<Objection[]>('/rights/objections', { params: customerId ? { customer_id: customerId } : {} }),
+  createObjection: (data: { customer_id: number; purpose_id: number; source?: string }) =>
+    api.post<Objection>('/rights/objections', data),
+  listErasureJobs: (params?: { customer_id?: number; status?: string }) =>
+    api.get<ErasureJob[]>('/rights/erasure-jobs', { params }),
+  cancelErasureJob: (jobId: number) =>
+    api.post<{ message: string }>(`/rights/erasure-jobs/${jobId}/cancel`),
+}
+
+// ---- R1-08: sharing events ----
+export const sharingEventsApi = {
+  list: (consentId?: number) =>
+    api.get<SharingEvent[]>('/sharing-events', { params: consentId ? { consent_id: consentId } : {} }),
 }

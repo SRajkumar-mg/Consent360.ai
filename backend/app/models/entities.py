@@ -89,6 +89,21 @@ AUDIT_EVENTS = [
     "LOGIN_FAILED",
     "CONSENT_TEXT_VIEWED",
     "CONSENT_EVIDENCE_VIEWED",
+    "API_KEY_CREATED",
+    "API_KEY_ROTATED",
+    "API_KEY_REVOKED",
+    "TENANT_SCOPE_VIOLATION",
+    "VERIFY_OTP_SENT",
+    "VERIFY_OTP_CONFIRMED",
+    "VERIFY_OTP_FAILED",
+    "BREACH_CREATED",
+    "BREACH_NOTIFICATION_SENT",
+    "PROCESSOR_ALERT_SENT",
+    "PROCESSOR_ALERT_ESCALATED",
+    "ACCESS_LOG",
+    "BULK_EXPORT",
+    "OFF_HOURS_ADMIN",
+    "FAILED_LOGIN_REPEATED",
 ]
 
 
@@ -120,6 +135,15 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 
+    # R3-02: Auth hardening
+    failed_login_count: Mapped[int] = mapped_column(Integer, default=0)
+    locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    token_version: Mapped[int] = mapped_column(Integer, default=1)
+    mfa_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    mfa_recovery_codes: Mapped[list["MFARecoveryCode"]] = relationship(
+        "MFARecoveryCode", cascade="all, delete-orphan"
+    )
+
     role: Mapped["Role"] = relationship("Role", back_populates="users")
 
 
@@ -136,11 +160,22 @@ class Customer(Base):
     phone: Mapped[str] = mapped_column(EncryptedString(256), default="")
     status: Mapped[str] = mapped_column(String(32), default="ACTIVE")
     source_app: Mapped[str] = mapped_column(String(128), default="")
+    tenant_id: Mapped[int | None] = mapped_column(ForeignKey("tenants.id"), nullable=True, index=True)
+    last_interaction_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 
+    # R3-05: Identity verification
+    identity_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    verification_method: Mapped[str | None] = mapped_column(String(32), nullable=True)
+
     consents: Mapped[list["Consent"]] = relationship(
         "Consent", back_populates="customer", cascade="all, delete-orphan"
+    )
+    tenant: Mapped["Tenant | None"] = relationship("Tenant")
+
+    data_sharing_events: Mapped[list["DataSharingEvent"]] = relationship(
+        "DataSharingEvent", order_by="DataSharingEvent.created_at", cascade="all, delete-orphan"
     )
 
 
@@ -164,8 +199,11 @@ class CrmCustomer(Base):
     address: Mapped[str | None] = mapped_column(EncryptedText, nullable=True)
     phone: Mapped[str | None] = mapped_column(EncryptedString(256), nullable=True)
     consent_preferences: Mapped[dict] = mapped_column(JSON, default=dict)
+    tenant_id: Mapped[int | None] = mapped_column(ForeignKey("tenants.id"), nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+    tenant: Mapped["Tenant | None"] = relationship("Tenant")
 
 
 class DataCategory(Base):
@@ -176,6 +214,7 @@ class DataCategory(Base):
     code: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)
     description: Mapped[str] = mapped_column(Text, default="")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    data_residency: Mapped[str] = mapped_column(String(32), default="INDIAN", nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 
@@ -200,17 +239,20 @@ class Purpose(Base):
     code: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)
     description: Mapped[str] = mapped_column(Text, default="")
     legal_basis: Mapped[str] = mapped_column(String(64), default="CONSENT")
+    lawful_basis: Mapped[str] = mapped_column(String(32), default="CONSENT")
     requires_consent: Mapped[bool] = mapped_column(Boolean, default=True)
     retention_period_days: Mapped[int] = mapped_column(Integer, default=365)
     status: Mapped[str] = mapped_column(String(32), default="ACTIVE")
     current_version: Mapped[int] = mapped_column(Integer, default=1)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    tenant_id: Mapped[int | None] = mapped_column(ForeignKey("tenants.id"), nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 
     versions: Mapped[list["PurposeVersion"]] = relationship(
         "PurposeVersion", back_populates="purpose", order_by="PurposeVersion.version_number.desc()"
     )
+    tenant: Mapped["Tenant | None"] = relationship("Tenant")
 
 
 class PurposeVersion(Base):
@@ -222,9 +264,15 @@ class PurposeVersion(Base):
     name: Mapped[str] = mapped_column(String(128), nullable=False)
     description: Mapped[str] = mapped_column(Text, default="")
     legal_basis: Mapped[str] = mapped_column(String(64), default="CONSENT")
+    lawful_basis: Mapped[str] = mapped_column(String(32), default="CONSENT")
+    clause_reference: Mapped[str] = mapped_column(Text, default="")
     requires_consent: Mapped[bool] = mapped_column(Boolean, default=True)
     retention_period_days: Mapped[int] = mapped_column(Integer, default=365)
     data_category_ids: Mapped[list] = mapped_column(JSON, default=list)
+    data_items: Mapped[dict] = mapped_column(JSON, default=list)
+    services_enabled: Mapped[str] = mapped_column(Text, default="")
+    child_restricted: Mapped[bool] = mapped_column(Boolean, default=False)
+    retention_policy_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     processing_activity_ids: Mapped[list] = mapped_column(JSON, default=list)
     consent_text: Mapped[str] = mapped_column(EncryptedText, default="")
     translations: Mapped[dict] = mapped_column(JSON, default=dict)
@@ -247,12 +295,14 @@ class Policy(Base):
     status: Mapped[str] = mapped_column(String(32), default="ACTIVE")
     current_version: Mapped[int] = mapped_column(Integer, default=1)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    tenant_id: Mapped[int | None] = mapped_column(ForeignKey("tenants.id"), nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 
     versions: Mapped[list["PolicyVersion"]] = relationship(
         "PolicyVersion", back_populates="policy", order_by="PolicyVersion.version_number.desc()"
     )
+    tenant: Mapped["Tenant | None"] = relationship("Tenant")
 
 
 class PolicyVersion(Base):
@@ -288,6 +338,7 @@ class Consent(Base):
     )
     policy_id: Mapped[int | None] = mapped_column(ForeignKey("policies.id"), nullable=True)
     policy_version_id: Mapped[int | None] = mapped_column(ForeignKey("policy_versions.id"), nullable=True)
+    notice_version_id: Mapped[int | None] = mapped_column(ForeignKey("notice_versions.id"), nullable=True)
 
     consent_version: Mapped[int] = mapped_column(Integer, default=1)
     status: Mapped[str] = mapped_column(String(32), default="NOT_REQUESTED", index=True)
@@ -303,6 +354,10 @@ class Consent(Base):
     collection_method: Mapped[str] = mapped_column(String(64), default="UI")
     source_app: Mapped[str] = mapped_column(String(128), default="")
     actor_username: Mapped[str] = mapped_column(String(64), default="system")
+    tenant_id: Mapped[int | None] = mapped_column(ForeignKey("tenants.id"), nullable=True, index=True)
+
+    re_consent_required: Mapped[bool] = mapped_column(Boolean, default=False)
+    re_consent_requested_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
@@ -314,11 +369,14 @@ class Consent(Base):
     processing_activity: Mapped["ProcessingActivity"] = relationship("ProcessingActivity")
     policy: Mapped["Policy"] = relationship("Policy")
     policy_version: Mapped["PolicyVersion"] = relationship("PolicyVersion")
+    notice_version: Mapped["NoticeVersion | None"] = relationship("NoticeVersion")
+    tenant: Mapped["Tenant | None"] = relationship("Tenant")
 
     history: Mapped[list["ConsentHistory"]] = relationship(
         "ConsentHistory", back_populates="consent", order_by="ConsentHistory.created_at"
     )
     evidence: Mapped[list["ConsentEvidence"]] = relationship("ConsentEvidence", back_populates="consent")
+    receipts: Mapped[list["ConsentReceipt"]] = relationship("ConsentReceipt", back_populates="consent")
 
 
 class ConsentHistory(Base):
@@ -357,9 +415,25 @@ class ConsentEvidence(Base):
     policy_version: Mapped[int] = mapped_column(Integer, nullable=True)
     request_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     details: Mapped[dict] = mapped_column(JSON, default=dict)
+
+    notice_version_id: Mapped[int | None] = mapped_column(ForeignKey("notice_versions.id"), nullable=True)
+    notice_hash: Mapped[str] = mapped_column(String(64), default="")
+    language: Mapped[str] = mapped_column(String(8), default="en")
+    ip_address: Mapped[str] = mapped_column(EncryptedString(256), default="")
+    user_agent: Mapped[str] = mapped_column(Text, default="")
+    session_id: Mapped[str] = mapped_column(String(64), default="")
+    ui_control_id: Mapped[str] = mapped_column(String(128), default="")
+    banner_version: Mapped[str] = mapped_column(String(64), default="")
+    screen_id: Mapped[str] = mapped_column(String(128), default="")
+    affirmative_action: Mapped[str] = mapped_column(String(32), default="CLICK")
+    content_hash: Mapped[str] = mapped_column(String(64), default="")
+    signature: Mapped[str | None] = mapped_column(Text, nullable=True)
+    is_legacy: Mapped[bool] = mapped_column(Boolean, default=False)
+
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     consent: Mapped["Consent"] = relationship("Consent", back_populates="evidence")
+    notice_version: Mapped["NoticeVersion | None"] = relationship("NoticeVersion")
 
 
 class ConsentContext(Base):
@@ -368,6 +442,7 @@ class ConsentContext(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     customer_id: Mapped[int] = mapped_column(ForeignKey("customers.id"), nullable=False, index=True)
     token: Mapped[str] = mapped_column(String(512), unique=True, nullable=False)
+    token_hash: Mapped[str] = mapped_column(String(64), default="", index=True)
     source_app: Mapped[str] = mapped_column(String(128), default="")
     request_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_by: Mapped[str] = mapped_column(String(64), default="integration")
@@ -399,6 +474,8 @@ class ConsentDecisionLog(Base):
     source_app: Mapped[str] = mapped_column(String(128), default="")
     request_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     details: Mapped[dict] = mapped_column(EncryptedJSON, default=dict)
+    latency_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    tenant_id: Mapped[int | None] = mapped_column(ForeignKey("tenants.id"), nullable=True, index=True)
     evaluated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
 
 
@@ -426,6 +503,14 @@ class AuditLog(Base):
     request_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     details: Mapped[dict] = mapped_column(JSON, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+
+    entry_hash: Mapped[str] = mapped_column(String(64), default="")
+    prev_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    actor_type: Mapped[str] = mapped_column(String(32), default="USER")
+    actor_id: Mapped[str] = mapped_column(String(128), default="")
+    ip_address: Mapped[str] = mapped_column(EncryptedString(256), default="")
+    user_agent: Mapped[str] = mapped_column(Text, default="")
+    tenant_id: Mapped[int | None] = mapped_column(ForeignKey("tenants.id"), nullable=True, index=True)
 
 
 class Organization(Base):
@@ -460,3 +545,627 @@ class OrganizationUser(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     organization: Mapped["Organization"] = relationship("Organization", back_populates="users")
+
+
+# ============================================================================
+# R1-01 — Tenant model  /  R3-01: Tenant-bound API keys
+# ============================================================================
+
+class Tenant(Base):
+    __tablename__ = "tenants"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    code: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)
+    name: Mapped[str] = mapped_column(String(256), nullable=False)
+    domain: Mapped[str] = mapped_column(String(256), default="")
+    dpo_name: Mapped[str] = mapped_column(String(256), default="")
+    dpo_contact: Mapped[str] = mapped_column(EncryptedText, default="")
+    withdraw_url: Mapped[str] = mapped_column(String(512), default="")
+    rights_url: Mapped[str] = mapped_column(String(512), default="")
+    grievance_url: Mapped[str] = mapped_column(String(512), default="")
+    board_complaint_url: Mapped[str] = mapped_column(String(512), default="")
+    grievance_response_days: Mapped[int] = mapped_column(Integer, default=90)
+    default_language: Mapped[str] = mapped_column(String(8), default="en")
+    environment: Mapped[str] = mapped_column(String(32), default="development")
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+    api_keys: Mapped[list["ApiKey"]] = relationship("ApiKey", back_populates="tenant")
+    notification_templates: Mapped[list["NotificationTemplate"]] = relationship("NotificationTemplate", back_populates="tenant")
+    processors: Mapped[list["Processor"]] = relationship("Processor", back_populates="tenant")
+
+
+class ApiKey(Base):
+    __tablename__ = "api_keys"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"), nullable=False, index=True)
+    key_hash: Mapped[str] = mapped_column(String(256), unique=True, nullable=False, index=True)
+    name: Mapped[str] = mapped_column(String(128), default="default")
+    scopes: Mapped[str] = mapped_column(String(512), default="integration.use,context.use")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    rotated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="api_keys")
+
+
+# ============================================================================
+# R3-02: Staff auth hardening
+# ============================================================================
+
+class TokenRevocation(Base):
+    __tablename__ = "token_revocations"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    jti: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    revoked_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class MFASecret(Base):
+    __tablename__ = "mfa_secrets"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), unique=True, nullable=False)
+    secret: Mapped[str] = mapped_column(String(256), nullable=False)
+    is_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    enabled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class MFARecoveryCode(Base):
+    __tablename__ = "mfa_recovery_codes"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    code_hash: Mapped[str] = mapped_column(String(256), nullable=False)
+    is_used: Mapped[bool] = mapped_column(Boolean, default=False)
+    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    user: Mapped["User"] = relationship("User", back_populates="mfa_recovery_codes")
+
+
+# ============================================================================
+# R3-05: Principal identity verification
+# ============================================================================
+
+class VerificationToken(Base):
+    __tablename__ = "verification_tokens"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    identifier: Mapped[str] = mapped_column(String(256), nullable=False, index=True)
+    token_hash: Mapped[str] = mapped_column(String(256), nullable=False)
+    verification_method: Mapped[str] = mapped_column(String(32), nullable=False)
+    is_consumed: Mapped[bool] = mapped_column(Boolean, default=False)
+    attempt_count: Mapped[int] = mapped_column(Integer, default=0)
+    max_attempts: Mapped[int] = mapped_column(Integer, default=5)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    consumed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+# ============================================================================
+# R1-04 — Notice / NoticeVersion models
+# ============================================================================
+
+NOTICE_STATUSES = ["DRAFT", "PUBLISHED", "RETIRED"]
+
+
+class Notice(Base):
+    __tablename__ = "notices"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"), nullable=False, index=True)
+    purpose_id: Mapped[int] = mapped_column(ForeignKey("purposes.id"), nullable=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+    tenant: Mapped["Tenant"] = relationship("Tenant")
+    purpose: Mapped["Purpose"] = relationship("Purpose")
+    versions: Mapped[list["NoticeVersion"]] = relationship(
+        "NoticeVersion", back_populates="notice", order_by="NoticeVersion.version_number.desc()"
+    )
+
+
+class NoticeVersion(Base):
+    __tablename__ = "notice_versions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    notice_id: Mapped[int] = mapped_column(ForeignKey("notices.id"), nullable=False, index=True)
+    version_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    language: Mapped[str] = mapped_column(String(8), nullable=False, index=True)
+    title: Mapped[str] = mapped_column(String(256), nullable=False)
+    body: Mapped[str] = mapped_column(Text, default="")
+    data_items: Mapped[dict] = mapped_column(JSON, default=list)
+    services_enabled: Mapped[str] = mapped_column(Text, default="")
+    retention_text: Mapped[str] = mapped_column(Text, default="")
+    withdraw_url: Mapped[str] = mapped_column(String(512), default="")
+    rights_url: Mapped[str] = mapped_column(String(512), default="")
+    board_complaint_url: Mapped[str] = mapped_column(String(512), default="")
+    dpo_contact: Mapped[str] = mapped_column(Text, default="")
+    content_hash: Mapped[str] = mapped_column(String(64), default="")
+    status: Mapped[str] = mapped_column(String(32), default="DRAFT", index=True)
+    effective_from: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    effective_to: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    published_by: Mapped[str] = mapped_column(String(64), default="system")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_by: Mapped[str] = mapped_column(String(64), default="system")
+
+    notice: Mapped["Notice"] = relationship("Notice", back_populates="versions")
+
+
+# ============================================================================
+# R1-08 — Consent receipts, data-sharing events, objections
+# ============================================================================
+
+class ConsentReceipt(Base):
+    __tablename__ = "consent_receipts"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    consent_id: Mapped[int] = mapped_column(ForeignKey("consents.id"), nullable=False, index=True)
+    consent_evidence_id: Mapped[int] = mapped_column(ForeignKey("consent_evidence.id"), nullable=False, index=True)
+    tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"), nullable=False)
+    customer_id: Mapped[int] = mapped_column(ForeignKey("customers.id"), nullable=False)
+    purpose_id: Mapped[int] = mapped_column(ForeignKey("purposes.id"), nullable=False)
+    notice_version_id: Mapped[int | None] = mapped_column(ForeignKey("notice_versions.id"), nullable=True)
+    receipt_number: Mapped[str] = mapped_column(String(64), unique=True, default="")
+    data_items_snapshot: Mapped[dict] = mapped_column(JSON, default=dict)
+    method: Mapped[str] = mapped_column(String(64), default="PORTAL")
+    payload: Mapped[dict] = mapped_column(JSON, default=dict)
+    payload_hash: Mapped[str] = mapped_column(String(64), default="")
+    signature: Mapped[str | None] = mapped_column(Text, nullable=True)
+    issued_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    consent: Mapped["Consent"] = relationship("Consent", back_populates="receipts")
+
+
+SHARING_EVENT_TYPES = ["REQUESTED", "SENT", "DENIED"]
+
+
+# ============================================================================
+# R1-06 — Retention / erasure engine
+# ============================================================================
+
+class RetentionPolicy(Base):
+    __tablename__ = "retention_policies"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"), nullable=False)
+    record_class: Mapped[str] = mapped_column(String(64), nullable=False)
+    scope: Mapped[str] = mapped_column(String(64), default="all")
+    retention_days: Mapped[int] = mapped_column(Integer, nullable=False)
+    inactivity_days: Mapped[int] = mapped_column(Integer, nullable=True)
+    pre_erasure_notice_hours: Mapped[int] = mapped_column(Integer, default=48)
+    action: Mapped[str] = mapped_column(String(32), default="ANONYMISE")
+    legal_basis_for_retention: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+
+class LegalHold(Base):
+    __tablename__ = "legal_holds"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    target_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    target_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    reason: Mapped[str] = mapped_column(Text, nullable=False)
+    placed_by: Mapped[str] = mapped_column(String(64), nullable=False)
+    placed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    released_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+ERASURE_TRIGGERS = ["WITHDRAWAL", "REQUEST", "CLOCK", "PURGE"]
+ERASURE_STATUSES = ["PENDING", "NOTICE_SENT", "EXECUTED", "CANCELLED"]
+
+
+class ErasureJob(Base):
+    __tablename__ = "erasure_jobs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"), nullable=False)
+    customer_id: Mapped[int] = mapped_column(ForeignKey("customers.id"), nullable=False)
+    trigger: Mapped[str] = mapped_column(String(32), nullable=False)
+    scheduled_for: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    notice_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    executed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    processors_notified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    processors_acked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    status: Mapped[str] = mapped_column(String(32), default="PENDING")
+    evidence_hash: Mapped[str] = mapped_column(String(64), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+
+# ============================================================================
+# R1-07 — Scheduler runs
+# ============================================================================
+
+class SchedulerRun(Base):
+    __tablename__ = "scheduler_runs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    job_name: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    status: Mapped[str] = mapped_column(String(32), default="running")
+    processed_count: Mapped[int] = mapped_column(Integer, default=0)
+    error_count: Mapped[int] = mapped_column(Integer, default=0)
+    error_detail: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+# ============================================================================
+# R1-09 — Policy change log
+# ============================================================================
+
+class PolicyChangeLog(Base):
+    __tablename__ = "policy_change_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    purpose_id: Mapped[int] = mapped_column(ForeignKey("purposes.id"), nullable=False)
+    version_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    published_by: Mapped[str] = mapped_column(String(64), nullable=False)
+    is_material: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_cosmetic_change: Mapped[bool] = mapped_column(Boolean, default=False)
+    diff_summary: Mapped[dict] = mapped_column(JSON, default=dict)
+    published_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+# ============================================================================
+# R1-10 — Retention floors config
+# ============================================================================
+
+class RetentionFloor(Base):
+    __tablename__ = "retention_floors"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    record_class: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    minimum_days: Mapped[int] = mapped_column(Integer, nullable=False)
+    description: Mapped[str] = mapped_column(Text, default="")
+
+
+# ============================================================================
+# R3-06: Notification service
+# ============================================================================
+
+class NotificationTemplate(Base):
+    __tablename__ = "notification_templates"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"), nullable=False, index=True)
+    event_type: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    channel: Mapped[str] = mapped_column(String(16), nullable=False)
+    language: Mapped[str] = mapped_column(String(10), default="en")
+    subject: Mapped[str] = mapped_column(String(256), default="")
+    body: Mapped[str] = mapped_column(Text, nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+    tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="notification_templates")
+
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"), nullable=False, index=True)
+    event_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    channel: Mapped[str] = mapped_column(String(16), nullable=False)
+    language: Mapped[str] = mapped_column(String(10), default="en")
+    recipient: Mapped[str] = mapped_column(String(512), nullable=False)
+    reference_type: Mapped[str] = mapped_column(String(64), default="")
+    reference_id: Mapped[str] = mapped_column(String(64), default="")
+    subject: Mapped[str] = mapped_column(String(256), default="")
+    body: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[str] = mapped_column(String(32), default="PENDING", index=True)
+    provider_ref: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    retry_count: Mapped[int] = mapped_column(Integer, default=0)
+    max_retries: Mapped[int] = mapped_column(Integer, default=3)
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    delivered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    acknowledged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    failed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+
+# ============================================================================
+# R3-07: Processor register and propagation
+# ============================================================================
+
+class Processor(Base):
+    __tablename__ = "processors"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"), nullable=False, index=True)
+    name: Mapped[str] = mapped_column(String(256), nullable=False)
+    type: Mapped[str] = mapped_column(String(64), default="PROCESSOR")
+    country: Mapped[str] = mapped_column(String(64), default="IN")
+    contact: Mapped[str] = mapped_column(String(256), default="")
+    contract_ref: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    contract_start: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    contract_end: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    security_clauses: Mapped[str] = mapped_column(Text, default="")
+    erasure_clause: Mapped[str] = mapped_column(Text, default="")
+    webhook_url: Mapped[str] = mapped_column(String(512), default="")
+    webhook_secret: Mapped[str] = mapped_column(String(256), default="")
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+    tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="processors")
+    alerts: Mapped[list["ProcessorAlert"]] = relationship("ProcessorAlert", back_populates="processor")
+    data_sharing_events: Mapped[list["DataSharingEvent"]] = relationship(
+        "DataSharingEvent", order_by="DataSharingEvent.created_at", cascade="all, delete-orphan"
+    )
+
+
+class ProcessorAlert(Base):
+    __tablename__ = "processor_alerts"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    processor_id: Mapped[int] = mapped_column(ForeignKey("processors.id"), nullable=False, index=True)
+    tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"), nullable=False, index=True)
+    alert_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    reference_type: Mapped[str] = mapped_column(String(64), default="")
+    reference_id: Mapped[str] = mapped_column(String(64), default="")
+    payload: Mapped[dict] = mapped_column(JSON, default=dict)
+    status: Mapped[str] = mapped_column(String(32), default="PENDING", index=True)
+    retry_count: Mapped[int] = mapped_column(Integer, default=0)
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    acknowledged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    escalated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+    processor: Mapped["Processor"] = relationship("Processor", back_populates="alerts")
+
+
+class DataSharingEvent(Base):
+    """Merged: R1's customer/purpose/hash-chain event log combined with
+    R3's processor-register-linked propagation tracking."""
+
+    __tablename__ = "data_sharing_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"), nullable=False, index=True)
+    customer_id: Mapped[int | None] = mapped_column(ForeignKey("customers.id"), nullable=True)
+    consent_id: Mapped[int | None] = mapped_column(ForeignKey("consents.id"), nullable=True)
+    processor_id: Mapped[int | None] = mapped_column(ForeignKey("processors.id"), nullable=True, index=True)
+    purpose_id: Mapped[int | None] = mapped_column(ForeignKey("purposes.id"), nullable=True)
+    data_category_ids: Mapped[dict] = mapped_column(JSON, default=list)
+    event_type: Mapped[str] = mapped_column(String(32), nullable=False, default="REQUESTED")
+    status: Mapped[str] = mapped_column(String(32), default="PENDING", index=True)
+    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    hash: Mapped[str] = mapped_column(String(64), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+    processor: Mapped["Processor | None"] = relationship("Processor", back_populates="data_sharing_events")
+    customer: Mapped["Customer | None"] = relationship("Customer", back_populates="data_sharing_events")
+
+
+OBJECTION_STATUSES = ["OPEN", "ACKNOWLEDGED"]
+
+
+class Objection(Base):
+    __tablename__ = "objections"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"), nullable=False)
+    customer_id: Mapped[int] = mapped_column(ForeignKey("customers.id"), nullable=False)
+    purpose_id: Mapped[int] = mapped_column(ForeignKey("purposes.id"), nullable=False)
+    source: Mapped[str] = mapped_column(String(64), default="portal")
+    status: Mapped[str] = mapped_column(String(32), default="OPEN")
+    objected_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+# ============================================================================
+# R3-08: Breach management
+# ============================================================================
+
+class Breach(Base):
+    __tablename__ = "breaches"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"), nullable=False, index=True)
+    reference_no: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)
+    breach_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    detected_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    aware_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    nature: Mapped[str] = mapped_column(Text, default="")
+    extent: Mapped[str] = mapped_column(Text, default="")
+    timing: Mapped[str] = mapped_column(Text, default="")
+    location: Mapped[str] = mapped_column(Text, default="")
+    likely_impact: Mapped[str] = mapped_column(Text, default="")
+    cause: Mapped[str] = mapped_column(Text, default="")
+    mitigation: Mapped[str] = mapped_column(Text, default="")
+    remedial_measures: Mapped[str] = mapped_column(Text, default="")
+    findings_on_actor: Mapped[str] = mapped_column(Text, default="")
+    status: Mapped[str] = mapped_column(String(32), default="DETECTED", index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+    notifications: Mapped[list["BreachNotification"]] = relationship("BreachNotification", back_populates="breach")
+    extension_requests: Mapped[list["BreachExtensionRequest"]] = relationship("BreachExtensionRequest", back_populates="breach")
+
+
+class BreachNotification(Base):
+    __tablename__ = "breach_notifications"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    breach_id: Mapped[int] = mapped_column(ForeignKey("breaches.id"), nullable=False, index=True)
+    recipient_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    channel: Mapped[str] = mapped_column(String(16), default="EMAIL")
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    deadline_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    delivered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    acknowledged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    content_hash: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    status: Mapped[str] = mapped_column(String(32), default="PENDING")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    breach: Mapped["Breach"] = relationship("Breach", back_populates="notifications")
+
+
+class BreachExtensionRequest(Base):
+    __tablename__ = "breach_extension_requests"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    breach_id: Mapped[int] = mapped_column(ForeignKey("breaches.id"), nullable=False, index=True)
+    clock_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    requested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    reason: Mapped[str] = mapped_column(Text, default="")
+    new_deadline_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    approved_by: Mapped[str | None] = mapped_column(String(64), nullable=True)
+
+    breach: Mapped["Breach"] = relationship("Breach", back_populates="extension_requests")
+
+
+class BreachAffectedCustomer(Base):
+    __tablename__ = "breach_affected_customers"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    breach_id: Mapped[int] = mapped_column(ForeignKey("breaches.id"), nullable=False, index=True)
+    customer_id: Mapped[int] = mapped_column(ForeignKey("customers.id"), nullable=False, index=True)
+    notified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+# ============================================================================
+# R3-10: Consent validation API & Consent Manager API
+# ============================================================================
+
+class ConsentArtefact(Base):
+    __tablename__ = "consent_artefacts"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    artefact_id: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    customer_id: Mapped[int] = mapped_column(ForeignKey("customers.id"), nullable=False, index=True)
+    purpose_code: Mapped[str] = mapped_column(String(64), nullable=False)
+    data_category_code: Mapped[str] = mapped_column(String(64), nullable=False)
+    processing_activity_code: Mapped[str] = mapped_column(String(64), nullable=False)
+    subject: Mapped[str] = mapped_column(String(256), default="")
+    purpose: Mapped[str] = mapped_column(String(256), default="")
+    method: Mapped[str] = mapped_column(String(64), default="EXPLICIT")
+    expiry: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    revocable: Mapped[bool] = mapped_column(Boolean, default=True)
+    data_life: Mapped[str] = mapped_column(String(64), default="SINGLE_USE")
+    frequency: Mapped[str] = mapped_column(String(64), default="ONE_TIME")
+    access_mode: Mapped[str] = mapped_column(String(32), default="PUSH")
+    notification_url: Mapped[str] = mapped_column(String(512), default="")
+    status: Mapped[str] = mapped_column(String(32), default="ACTIVE")
+    payload_hash: Mapped[str] = mapped_column(String(256), nullable=False)
+    signature: Mapped[str] = mapped_column(String(512), nullable=False)
+    source_app: Mapped[str] = mapped_column(String(128), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    withdrawn_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class FiduciaryOnboarding(Base):
+    __tablename__ = "fiduciary_onboarding"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    fiduciary_id: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)
+    name: Mapped[str] = mapped_column(String(256), nullable=False)
+    contact: Mapped[str] = mapped_column(String(256), default="")
+    public_key: Mapped[str] = mapped_column(Text, default="")
+    status: Mapped[str] = mapped_column(String(32), default="PENDING")
+    onboarded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class Disclosure(Base):
+    __tablename__ = "disclosures"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"), nullable=False, index=True)
+    content: Mapped[dict] = mapped_column(JSON, default=dict)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+
+# ============================================================================
+# R3-12: SDF readiness - Algorithm register, DPIA/audit records, data residency
+# ============================================================================
+
+class AlgorithmRegister(Base):
+    __tablename__ = "algorithm_register"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    system_name: Mapped[str] = mapped_column(String(128), nullable=False)
+    description: Mapped[str] = mapped_column(Text, default="")
+    risk_level: Mapped[str] = mapped_column(String(32), default="MEDIUM")
+    last_reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    reviewer: Mapped[str] = mapped_column(String(128), default="")
+    findings_summary: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+
+class DPIARecord(Base):
+    __tablename__ = "dpia_records"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    title: Mapped[str] = mapped_column(String(256), nullable=False)
+    scope: Mapped[str] = mapped_column(Text, default="")
+    findings_summary: Mapped[str] = mapped_column(Text, default="")
+    next_review_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    status: Mapped[str] = mapped_column(String(32), default="DRAFT")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+
+class DataResidencyFlag(Base):
+    __tablename__ = "data_residency_flags"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    data_category_code: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    requires_localization: Mapped[bool] = mapped_column(Boolean, default=False)
+    country: Mapped[str] = mapped_column(String(64), default="IN")
+    regulation_ref: Mapped[str] = mapped_column(String(128), default="")
+    notes: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+# ============================================================================
+# R3-04: Access logging extensions
+# ============================================================================
+
+class AccessLog(Base):
+    __tablename__ = "access_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    event_type: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    actor_username: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    actor_role: Mapped[str] = mapped_column(String(64), default="")
+    resource_type: Mapped[str] = mapped_column(String(64), default="")
+    resource_id: Mapped[str] = mapped_column(String(64), default="")
+    details: Mapped[dict] = mapped_column(JSON, default=dict)
+    request_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    ip_address: Mapped[str] = mapped_column(String(64), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+
+
+class AlertRule(Base):
+    __tablename__ = "alert_rules"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(128), nullable=False)
+    event_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    threshold: Mapped[int] = mapped_column(Integer, default=10)
+    window_minutes: Mapped[int] = mapped_column(Integer, default=60)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    notify_contacts: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
