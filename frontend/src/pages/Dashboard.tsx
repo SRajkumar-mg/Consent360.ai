@@ -8,7 +8,7 @@ import {
 } from 'recharts'
 import type { DashboardResponse } from '../types'
 
-const PIE_COLORS = ['#16a34a', '#4f6ef7', '#d97706', '#dc2626', '#64748b', '#0284c7', '#7c3aed']
+const PIE_COLORS = ['#10b981', '#4f46e5', '#f59e0b', '#ef4444', '#64748b', '#3b82f6', '#8b5cf6']
 
 function ChartTip({ active, payload, label }: { active?: boolean; payload?: Array<{ name?: string; value?: number | string; color?: string; payload?: { fill?: string; color?: string } }>; label?: string }) {
   if (!active || !payload?.length) return null
@@ -17,7 +17,7 @@ function ChartTip({ active, payload, label }: { active?: boolean; payload?: Arra
       {label != null && <div className="chart-tip-title">{label}</div>}
       {payload.map((p, i) => (
         <div key={i} className="chart-tip-row">
-          <span className="chart-tip-dot" style={{ background: p.color || p.payload?.fill || p.payload?.color || '#4f6ef7' }} />
+          <span className="chart-tip-dot" style={{ background: p.color || p.payload?.fill || p.payload?.color || '#4f46e5' }} />
           <span>{p.name}</span>
           <b style={{ marginLeft: 'auto', paddingLeft: 10 }}>{p.value}</b>
         </div>
@@ -50,25 +50,25 @@ export function DashboardPage() {
     <div>
       <PageHead title="Dashboard" subtitle="Real-time overview of consent posture across the organization" />
 
-      <div className="card mb" style={{ background: 'linear-gradient(120deg, #131f42 0%, #1c2b5e 55%, #2a2a6b 100%)', borderColor: '#131f42' }}>
+      <div className="card mb" style={{ background: 'linear-gradient(120deg, #312e81 0%, #4338ca 55%, #4f46e5 100%)', borderColor: '#312e81' }}>
         <div className="card-body" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap', color: '#fff' }}>
           <div>
-            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: '#8aa2ff', marginBottom: 6 }}>Consent posture</div>
+            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: '#c7d2fe', marginBottom: 6 }}>Consent posture</div>
             <div style={{ fontSize: 22, fontWeight: 750, letterSpacing: '-0.4px' }}>
-              {m.total_consents} consent records <span style={{ color: '#8aa2ff' }}>·</span> {m.active_consents} active
+              {m.total_consents} consent records <span style={{ color: '#c7d2fe' }}>·</span> {m.active_consents} active
             </div>
-            <div style={{ fontSize: 13, color: '#b9c4da', marginTop: 6 }}>
-              across <b style={{ color: '#e6ebf8' }}>{m.total_purposes}</b> purposes and <b style={{ color: '#e6ebf8' }}>{m.total_policies}</b> policies
+            <div style={{ fontSize: 13, color: '#c7d2fe', marginTop: 6 }}>
+              across <b style={{ color: '#eef2ff' }}>{m.total_purposes}</b> purposes and <b style={{ color: '#eef2ff' }}>{m.total_policies}</b> policies
             </div>
           </div>
           <div className="flex" style={{ gap: 10, flexWrap: 'wrap' }}>
-            <span className="chip" style={{ background: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.18)', color: '#e6ebf8' }}>
+            <span className="chip" style={{ background: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.18)', color: '#eef2ff' }}>
               <IconAlert size={13} style={{ color: '#fbbf24' }} /> {m.expiring_soon} expiring ≤ 30d
             </span>
-            <span className="chip" style={{ background: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.18)', color: '#e6ebf8' }}>
+            <span className="chip" style={{ background: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.18)', color: '#eef2ff' }}>
               <IconUsers size={13} /> {m.total_customers} customers
             </span>
-            <span className="chip" style={{ background: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.18)', color: '#e6ebf8' }}>
+            <span className="chip" style={{ background: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.18)', color: '#eef2ff' }}>
               <IconShield size={13} /> {m.denied_consents} denied
             </span>
           </div>
@@ -118,9 +118,9 @@ export function DashboardPage() {
                   <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#eef1f6" />
                   <XAxis type="number" allowDecimals={false} stroke="#8a97b3" fontSize={11} />
                   <YAxis type="category" dataKey="purpose_name" width={130} stroke="#8a97b3" fontSize={11} />
-                  <Tooltip content={<ChartTip />} cursor={{ fill: 'rgba(79,110,247,0.06)' }} />
-                  <Bar dataKey="active" name="Active" fill="#4f6ef7" radius={[0, 4, 4, 0]} barSize={14} />
-                  <Bar dataKey="total" name="Total" fill="#d7defa" radius={[0, 4, 4, 0]} barSize={14} />
+                  <Tooltip content={<ChartTip />} cursor={{ fill: 'rgba(79,70,229,0.06)' }} />
+                  <Bar dataKey="active" name="Active" fill="#4f46e5" radius={[0, 4, 4, 0]} barSize={14} />
+                  <Bar dataKey="total" name="Total" fill="#e0e7ff" radius={[0, 4, 4, 0]} barSize={14} />
                 </BarChart>
               </ResponsiveContainer>
             ) : <div className="empty">No purpose data yet</div>}

@@ -51,7 +51,7 @@ export function CookieBanner({ customerId, onAcceptAll, onSave }: CookieBannerPr
         <div className="modal modal-cookie consent-banner-modal" role="dialog" aria-label="Cookie preferences">
           <div className="consent-banner-head">
             <span className="cookie-banner-icon" aria-hidden="true">
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#6d5df6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 2a10 10 0 1 0 10 10 4 4 0 0 1-5-5 4 4 0 0 1-5-5z" />
                 <path d="M8.5 8.5h.01M16 15.5h.01M12 12h.01M7 14h.01M17 10h.01" />
               </svg>

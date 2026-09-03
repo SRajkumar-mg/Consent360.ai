@@ -56,12 +56,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <div className="sidebar-brand">
           <div className="logo-badge"><Consent360Logo size={18} /></div>
           <div>
-            Consent<span style={{ color: '#8aa2ff' }}>360</span>
+            Consent<span style={{ color: 'var(--primary-accent)' }}>360</span>
           </div>
         </div>
         <nav className="sidebar-nav">
           {isOrgAdmin && (
-            <div className="nav-group" style={{ color: '#6b7899', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', padding: '4px 12px 6px' }}>
+            <div className="nav-group" style={{ padding: '4px 12px 6px' }}>
               {orgLabel} Admin
             </div>
           )}
@@ -89,7 +89,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </nav>
         <div className="sidebar-footer">
           <div style={{ marginBottom: 6 }}>Signed in as {user?.username}</div>
-          <div style={{ color: '#6b7899' }}>{user?.role_name?.replace(/_/g, ' ')}</div>
+          <div>{user?.role_name?.replace(/_/g, ' ')}</div>
         </div>
       </aside>
       <div className="main">

@@ -11,7 +11,7 @@ body,
 }
 
 body {
-  font-family: 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: #f8fafc;
   color: #1e293b;
   -webkit-font-smoothing: antialiased;
@@ -38,12 +38,12 @@ button {
 }
 
 .btn-primary {
-  background: #3b82f6;
+  background: #4f46e5;
   color: #ffffff;
 }
 
 .btn-primary:hover {
-  background: #2563eb;
+  background: #4338ca;
 }
 
 .btn-primary:disabled {
@@ -76,8 +76,8 @@ button {
   justify-content: center;
   padding: 24px;
   background:
-    radial-gradient(1000px 500px at 85% -10%, rgba(59, 130, 246, 0.12), transparent 60%),
-    radial-gradient(800px 400px at 0% 110%, rgba(59, 130, 246, 0.08), transparent 55%),
+    radial-gradient(1000px 500px at 85% -10%, rgba(79, 70, 229, 0.12), transparent 60%),
+    radial-gradient(800px 400px at 0% 110%, rgba(79, 70, 229, 0.08), transparent 55%),
     #f8fafc;
 }
 
@@ -97,12 +97,12 @@ button {
   height: 64px;
   margin: 0 auto 20px;
   border-radius: 16px;
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  background: linear-gradient(135deg, #4f46e5, #4338ca);
   color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8px 20px rgba(59, 130, 246, 0.35);
+  box-shadow: 0 8px 20px rgba(79, 70, 229, 0.35);
 }
 
 .login-icon svg {
@@ -150,9 +150,9 @@ button {
 }
 
 .field input:focus {
-  border-color: #3b82f6;
+  border-color: #4f46e5;
   background: #ffffff;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
 }
 
 .alert-error {
@@ -206,7 +206,7 @@ button {
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  background: linear-gradient(135deg, #4f46e5, #4338ca);
   color: #ffffff;
   display: inline-flex;
   align-items: center;
@@ -233,9 +233,9 @@ button {
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: #1d4ed8;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
+  color: #4338ca;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
   border-radius: 999px;
   padding: 2px 10px;
   white-space: nowrap;
@@ -311,7 +311,7 @@ button {
 }
 
 .stat-blue {
-  border-left-color: #3b82f6;
+  border-left-color: #4f46e5;
 }
 
 .stat-violet {
@@ -480,9 +480,9 @@ button {
 }
 
 .role-badge {
-  color: #1d4ed8;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
+  color: #4338ca;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
 }
 
 .role-org_admin {

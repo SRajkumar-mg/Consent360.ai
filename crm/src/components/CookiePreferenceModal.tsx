@@ -3,10 +3,10 @@ import { BANNER_COPY } from '../copy'
 import { COOKIE_CATEGORIES, CRM_LANG_KEY, LANGUAGES } from '../languages'
 
 const CAT_COLORS: Record<string, string> = {
-  necessary: '#8b93b4',
-  functional: '#6d5df6',
-  analytics: '#ffb454',
-  advertising: '#ff6b4a',
+  necessary: '#94a3b8',
+  functional: '#4f46e5',
+  analytics: '#f59e0b',
+  advertising: '#6366f1',
 }
 
 const DEFAULT_CATS: Record<string, boolean> = {
@@ -73,7 +73,7 @@ export function CookiePreferenceModal({ onClose, onAcceptAll, onSave, initialLan
           {COOKIE_CATEGORIES.map((c) => (
             <div className="cookie-category" key={c.id}>
               <div className="cookie-category-text">
-                <span className="cookie-cat-dot" style={{ background: CAT_COLORS[c.id] || '#8b93b4', color: CAT_COLORS[c.id] || '#8b93b4' }} />
+                <span className="cookie-cat-dot" style={{ background: CAT_COLORS[c.id] || '#94a3b8', color: CAT_COLORS[c.id] || '#94a3b8' }} />
                 <div>
                   <div className="cookie-category-label">{t[c.labelKey]}</div>
                   <div className="cookie-category-desc">{t[c.descKey]}</div>

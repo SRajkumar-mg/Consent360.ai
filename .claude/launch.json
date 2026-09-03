@@ -2,40 +2,32 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "backend",
-      "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "8000"],
-      "port": 8000
+      "name": "consent360-ui-reference",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 5174,
+      "cwd": "C:\\Users\\RajkumarS\\Downloads\\consent360_ui\\consent360_ui"
     },
     {
       "name": "frontend",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
-      "port": 8005
+      "runtimeArgs": ["run", "dev", "--", "--port", "5183", "--strictPort"],
+      "port": 5183,
+      "cwd": "C:\\Users\\RajkumarS\\Documents\\Consent360.ai\\frontend"
     },
     {
       "name": "crm",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
-      "port": 8008
+      "runtimeArgs": ["run", "dev", "--", "--port", "5184", "--strictPort"],
+      "port": 5184,
+      "cwd": "C:\\Users\\RajkumarS\\Documents\\Consent360.ai\\crm"
     },
     {
-      "name": "codex",
+      "name": "org-portal",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
-      "port": 8006
-    },
-    {
-      "name": "skilllearn",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
-      "port": 8007
-    },
-    {
-      "name": "job-portal",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
-      "port": 5180
+      "runtimeArgs": ["run", "dev", "--", "--port", "5185", "--strictPort"],
+      "port": 5185,
+      "cwd": "C:\\Users\\RajkumarS\\Documents\\Consent360.ai\\org-portal"
     }
   ]
 }
