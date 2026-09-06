@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.api.deps import require_permission
@@ -67,21 +67,32 @@ def _policy_out(policy: Policy, db: Session) -> PolicyOut:
         current_version=policy.current_version,
         is_active=policy.is_active,
         created_at=policy.created_at,
+        tenant_id=policy.tenant_id,
         versions=[_version_out(v, db) for v in versions],
     )
 
 
 @router.get("", response_model=list[PolicyOut])
-def list_policies(db: Session = Depends(get_db), _: User = Depends(require_permission(PERM_POLICY_VIEW))):
-    policies = db.query(Policy).order_by(Policy.code).all()
+def list_policies(
+    tenant_id: Optional[int] = Query(None, description="Filter to a single tenant's policies"),
+    db: Session = Depends(get_db),
+    _: User = Depends(require_permission(PERM_POLICY_VIEW)),
+):
+    query = db.query(Policy)
+    if tenant_id is not None:
+        query = query.filter(Policy.tenant_id == tenant_id)
+    policies = query.order_by(Policy.code).all()
     return [_policy_out(p, db) for p in policies]
 
 
 @router.get("/{policy_id}", response_model=PolicyOut)
-def get_policy(policy_id: int, db: Session = Depends(get_db),
+def get_policy(policy_id: int, tenant_id: Optional[int] = Query(None),
+               db: Session = Depends(get_db),
                _: User = Depends(require_permission(PERM_POLICY_VIEW))):
     policy = db.get(Policy, policy_id)
     if not policy:
+        raise HTTPException(status_code=404, detail="Policy not found")
+    if tenant_id is not None and policy.tenant_id != tenant_id:
         raise HTTPException(status_code=404, detail="Policy not found")
     return _policy_out(policy, db)
 
@@ -98,6 +109,7 @@ def create_policy(payload: PolicyIn, db: Session = Depends(get_db),
         status="ACTIVE",
         current_version=1,
         is_active=True,
+        tenant_id=payload.tenant_id,
     )
     db.add(policy)
     db.flush()

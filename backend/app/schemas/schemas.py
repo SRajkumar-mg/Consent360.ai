@@ -227,6 +227,7 @@ class PurposeIn(BaseModel):
     processing_activity_ids: list[int] = []
     consent_text: str = ""
     translations: Optional[dict] = None
+    tenant_id: Optional[int] = None
 
 
 class PurposeUpdate(BaseModel):
@@ -276,6 +277,7 @@ class PurposeOut(BaseModel):
     current_version: int
     is_active: bool
     created_at: datetime
+    tenant_id: Optional[int] = None
     versions: list[PurposeVersionOut] = []
     data_categories: list[DataCategoryOut] = []
     processing_activities: list[ProcessingActivityOut] = []
@@ -315,6 +317,7 @@ class PolicyIn(BaseModel):
     description: str = ""
     default_decision: str = Field(default="REQUIRE_CONSENT", pattern=r"^(ALLOW|DENY|REQUIRE_CONSENT)$")
     rules: list[PolicyRuleIn] = []
+    tenant_id: Optional[int] = None
 
 
 class PolicyUpdate(BaseModel):
@@ -349,6 +352,7 @@ class PolicyOut(BaseModel):
     current_version: int
     is_active: bool
     created_at: datetime
+    tenant_id: Optional[int] = None
     versions: list[PolicyVersionOut] = []
 
 

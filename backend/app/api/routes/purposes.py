@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
+from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.api.deps import require_permission
@@ -55,6 +56,7 @@ def _purpose_out(purpose: Purpose, db: Session) -> PurposeOut:
         current_version=purpose.current_version,
         is_active=purpose.is_active,
         created_at=purpose.created_at,
+        tenant_id=purpose.tenant_id,
         versions=[PurposeVersionOut.model_validate(v) for v in sorted(purpose.versions, key=lambda x: x.version_number, reverse=True)],
         data_categories=[DataCategoryOut.model_validate(dc) for dc in data_categories],
         processing_activities=[ProcessingActivityOut.model_validate(pa) for pa in activities],
@@ -71,16 +73,29 @@ def _apply_version_to_purpose(purpose: Purpose, pv: PurposeVersion) -> None:
 
 
 @router.get("", response_model=list[PurposeOut])
-def list_purposes(db: Session = Depends(get_db), _: User = Depends(require_permission(PERM_PURPOSE_VIEW))):
-    purposes = db.query(Purpose).order_by(Purpose.code).all()
+def list_purposes(
+    tenant_id: Optional[int] = Query(None, description="Filter to a single tenant's purposes"),
+    db: Session = Depends(get_db),
+    _: User = Depends(require_permission(PERM_PURPOSE_VIEW)),
+):
+    query = db.query(Purpose)
+    if tenant_id is not None:
+        query = query.filter(Purpose.tenant_id == tenant_id)
+    purposes = query.order_by(Purpose.code).all()
     return [_purpose_out(p, db) for p in purposes]
 
 
 @router.get("/{purpose_id}", response_model=PurposeOut)
-def get_purpose(purpose_id: int, db: Session = Depends(get_db),
+def get_purpose(purpose_id: int, tenant_id: Optional[int] = Query(None),
+                db: Session = Depends(get_db),
                 _: User = Depends(require_permission(PERM_PURPOSE_VIEW))):
     purpose = db.get(Purpose, purpose_id)
     if not purpose:
+        raise HTTPException(status_code=404, detail="Purpose not found")
+    if tenant_id is not None and purpose.tenant_id != tenant_id:
+        # Prevents IDOR via purpose_id enumeration across tenants when the
+        # caller asserts a tenant_id: treat cross-tenant access as not-found,
+        # not 403, to avoid confirming the resource's existence.
         raise HTTPException(status_code=404, detail="Purpose not found")
     return _purpose_out(purpose, db)
 
@@ -100,6 +115,7 @@ def create_purpose(payload: PurposeIn, db: Session = Depends(get_db),
         status="ACTIVE",
         current_version=1,
         is_active=True,
+        tenant_id=payload.tenant_id,
     )
     db.add(purpose)
     db.flush()

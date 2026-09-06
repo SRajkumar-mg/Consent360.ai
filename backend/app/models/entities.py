@@ -606,6 +606,62 @@ class ApiKey(Base):
 
 
 # ============================================================================
+# RBAC extension — tenant-aware role assignments + verified guardian links.
+#
+# UserTenantRole lets one `User` hold different roles across different
+# tenants (tenant_id set) and/or a platform-global role (tenant_id NULL, for
+# platform_* roles). This is additive alongside `User.role_id`, which
+# remains the user's default/primary role for backward compatibility with
+# existing single-role code paths (require_permission via user.role).
+# ============================================================================
+
+class UserTenantRole(Base):
+    __tablename__ = "user_tenant_roles"
+    __table_args__ = (
+        UniqueConstraint("user_id", "tenant_id", "role_id", name="uq_user_tenant_role"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    # NULL tenant_id = platform-global scope (platform_* roles only).
+    tenant_id: Mapped[int | None] = mapped_column(ForeignKey("tenants.id"), nullable=True, index=True)
+    role_id: Mapped[int] = mapped_column(ForeignKey("roles.id"), nullable=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_by: Mapped[str] = mapped_column(String(64), default="")
+    # Phase 2: time-boxed access (e.g. platform_auditor engagement window).
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    user: Mapped["User"] = relationship("User", foreign_keys=[user_id])
+    tenant: Mapped["Tenant | None"] = relationship("Tenant", foreign_keys=[tenant_id])
+    role: Mapped["Role"] = relationship("Role", foreign_keys=[role_id])
+
+
+class GuardianChildLink(Base):
+    """Verified guardian -> child relationship, separate from role assignment.
+
+    A `guardian` role alone never grants access to a child's data — only a
+    row here with status == "VERIFIED" does. This is the DPDP "verifiable
+    guardian consent" control point.
+    """
+    __tablename__ = "guardian_child_links"
+    __table_args__ = (
+        UniqueConstraint("guardian_user_id", "child_customer_id", name="uq_guardian_child"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    guardian_user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    child_customer_id: Mapped[int] = mapped_column(ForeignKey("customers.id"), nullable=False, index=True)
+    verification_method: Mapped[str] = mapped_column(String(64), default="")
+    status: Mapped[str] = mapped_column(String(32), default="PENDING")  # PENDING | VERIFIED | REVOKED
+    verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    guardian: Mapped["User"] = relationship("User", foreign_keys=[guardian_user_id])
+    child: Mapped["Customer"] = relationship("Customer", foreign_keys=[child_customer_id])
+
+
+# ============================================================================
 # R3-02: Staff auth hardening
 # ============================================================================
 

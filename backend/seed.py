@@ -36,6 +36,13 @@ def utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
+MVP_SEED_ROLE_NAMES = [
+    "data_principal", "guardian",
+    "tenant_admin", "tenant_privacy_officer", "tenant_support",
+    "platform_super_admin", "platform_compliance_officer", "platform_auditor",
+]
+
+
 def seed(db: Session) -> None:
     # ------------------------------------------------------------------ roles
     for name, perms in ROLE_PERMISSIONS.items():
@@ -72,42 +79,70 @@ def seed(db: Session) -> None:
     db.commit()
 
     # ------------------------------------------------------------------ users
+    # Only "viewer" is seeded here by design - admin/privacy.officer/
+    # data.steward/customer.service/auditor/readonly were retired in favor of
+    # the RBAC MVP role set below (tenant_admin, tenant_privacy_officer,
+    # platform_super_admin, etc., seeded as *.cms accounts).
     if db.query(User).count() == 0:
-        admin_role = db.query(Role).filter(Role.name == "admin").first()
         viewer_role = db.query(Role).filter(Role.name == "viewer").first()
-        manager_role = db.query(Role).filter(Role.name == "consent_manager").first()
-        auditor_role = db.query(Role).filter(Role.name == "auditor").first()
-        if admin_role is None or viewer_role is None:
-            raise RuntimeError("admin/viewer roles must exist before seeding users - re-run role seeding or create the roles table")
-        manager_role = manager_role or viewer_role
-        auditor_role = auditor_role or viewer_role
+        if viewer_role is None:
+            raise RuntimeError("viewer role must exist before seeding users - re-run role seeding or create the roles table")
 
         users = [
-            User(username=settings.SEED_ADMIN_USERNAME, full_name="System Administrator",
-                 email="admin@consent.local", email_search=hmac_digest("admin@consent.local"),
-                 password_hash=hash_password(settings.SEED_ADMIN_PASSWORD),
-                 role_id=admin_role.id, is_active=True),
-            User(username="privacy.officer", full_name="Priya Nair", email="privacy@consent.local",
-                 email_search=hmac_digest("privacy@consent.local"),
-                 password_hash=hash_password("Privacy@1234"), role_id=admin_role.id, is_active=True),
-            User(username="data.steward", full_name="Arjun Mehta", email="steward@consent.local",
-                 email_search=hmac_digest("steward@consent.local"),
-                 password_hash=hash_password("Steward@1234"), role_id=admin_role.id, is_active=True),
-            User(username="customer.service", full_name="Kavya Sharma", email="service@consent.local",
-                 email_search=hmac_digest("service@consent.local"),
-                 password_hash=hash_password("Service@1234"), role_id=manager_role.id, is_active=True),
-            User(username="auditor", full_name="Rahul Verma", email="auditor@consent.local",
-                 email_search=hmac_digest("auditor@consent.local"),
-                 password_hash=hash_password("Auditor@1234"), role_id=auditor_role.id, is_active=True),
-            User(username="readonly", full_name="Inspect User", email="readonly@consent.local",
-                 email_search=hmac_digest("readonly@consent.local"),
-                 password_hash=hash_password("Readonly@1234"), role_id=viewer_role.id, is_active=True),
             User(username="viewer", full_name="View Only", email="viewer@consent.local",
                  email_search=hmac_digest("viewer@consent.local"),
                  password_hash=hash_password("Viewer@1234"), role_id=viewer_role.id, is_active=True),
         ]
         db.add_all(users)
         db.commit()
+
+    # ------------------------------------------------------ RBAC MVP demo users
+    from app.models.entities import UserTenantRole, GuardianChildLink
+
+    if db.query(User).filter(User.username == "principal.cms").count() == 0:
+        role_by_name = {r.name: r for r in db.query(Role).filter(Role.name.in_(MVP_SEED_ROLE_NAMES)).all()}
+        from app.models.entities import Tenant as _Tenant
+        demo_tenant = db.query(_Tenant).order_by(_Tenant.id).first()
+
+        demo_specs = [
+            ("principal.cms", "Demo Data Principal", "principal.cms@consent.local", "Principal@1234", "data_principal", demo_tenant),
+            ("guardian.cms", "Demo Guardian", "guardian.cms@consent.local", "Guardian@1234", "guardian", demo_tenant),
+            ("tenant.admin.cms", "Demo Tenant Admin", "tenant.admin.cms@consent.local", "TenantAdmin@1234", "tenant_admin", demo_tenant),
+            ("privacy.officer.cms", "Demo Privacy Officer", "privacy.officer.cms@consent.local", "PrivacyOfficer@1234", "tenant_privacy_officer", demo_tenant),
+            ("tenant.support.cms", "Demo Tenant Support", "tenant.support.cms@consent.local", "TenantSupport@1234", "tenant_support", demo_tenant),
+            ("platform.superadmin.cms", "Demo Platform Super Admin", "platform.superadmin.cms@consent.local", "PlatformSuper@1234", "platform_super_admin", None),
+            ("platform.compliance.cms", "Demo Platform Compliance Officer", "platform.compliance.cms@consent.local", "PlatformCompliance@1234", "platform_compliance_officer", None),
+            ("platform.auditor.cms", "Demo Platform Auditor", "platform.auditor.cms@consent.local", "PlatformAuditor@1234", "platform_auditor", None),
+        ]
+        created_users: dict[str, User] = {}
+        for username, full_name, email, password, role_name, tenant in demo_specs:
+            role = role_by_name.get(role_name)
+            if not role:
+                continue
+            u = User(username=username, full_name=full_name, email=email,
+                      email_search=hmac_digest(email), password_hash=hash_password(password),
+                      role_id=role.id, is_active=True)
+            db.add(u)
+            db.flush()
+            created_users[username] = u
+            db.add(UserTenantRole(
+                user_id=u.id, tenant_id=tenant.id if tenant else None,
+                role_id=role.id, created_by="seed",
+            ))
+        db.commit()
+
+        # Demo verified guardian -> child link (guardian.cms manages one seeded customer's consent).
+        guardian_user = created_users.get("guardian.cms")
+        demo_child = db.query(Customer).order_by(Customer.id).first()
+        if guardian_user and demo_child:
+            db.add(GuardianChildLink(
+                guardian_user_id=guardian_user.id,
+                child_customer_id=demo_child.id,
+                verification_method="seed-demo",
+                status="VERIFIED",
+                verified_at=utcnow(),
+            ))
+            db.commit()
 
     # ------------------------------------------------------- reference data
     categories_by_code: dict[str, DataCategory] = {}

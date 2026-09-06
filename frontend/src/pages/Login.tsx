@@ -5,15 +5,15 @@ import { getErrorMessage } from '../api/client'
 import { Consent360Logo } from '../components/Logo'
 
 const DEMO_USERS = [
-  { label: 'admin', value: 'admin', pw: 'Admin@1234', role: 'Admin' },
+  { label: 'platform.superadmin.cms', value: 'platform.superadmin.cms', pw: 'PlatformSuper@1234', role: 'Platform Super Admin' },
   { label: 'viewer', value: 'viewer', pw: 'Viewer@1234', role: 'Viewer' },
 ]
 
 export function LoginPage() {
   const { login } = useAuth()
   const navigate = useNavigate()
-  const [username, setUsername] = useState('admin')
-  const [password, setPassword] = useState('Admin@1234')
+  const [username, setUsername] = useState('platform.superadmin.cms')
+  const [password, setPassword] = useState('PlatformSuper@1234')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [mfaRequired, setMfaRequired] = useState(false)

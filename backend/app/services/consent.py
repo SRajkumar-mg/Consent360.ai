@@ -7,6 +7,7 @@ from typing import Optional
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.core.security import sign_payload
 from app.models.entities import (
     CONSENT_STATUSES,
     CONSENT_TRANSITIONS,
