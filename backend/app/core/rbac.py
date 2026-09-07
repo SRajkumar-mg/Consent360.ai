@@ -87,6 +87,40 @@ PERM_ERASURE_MANAGE = "erasure.manage"
 PERM_RIGHTS_VIEW = "rights.view"
 PERM_RIGHTS_MANAGE = "rights.manage"
 
+# `customer.view` answers "may this staff member work this person's record".
+# `customer.contact.view` answers the separate, narrower question "may they
+# read the person's actual email address and telephone number".
+#
+# The two were the same permission until now, and the admin console papered
+# over that by masking email and phone in the browser while the API kept
+# returning them in full - a display convention presented to staff as a
+# privacy control. Anyone holding `customer.view` could read every principal's
+# contact details straight out of the JSON, so the screen promised a
+# protection that did not exist. Masking is now decided on the server: the
+# customer response layer emits `mask_identifier(...)` unless the caller holds
+# this permission (see app/schemas/schemas.py::CustomerOut.for_staff).
+#
+# NAME IS DELIBERATELY NOT COVERED. It stays visible to every `customer.view`
+# holder, because a staff member cannot work a grievance (s.10(2)(a)), a
+# rights request (s.11-14) or a consent queue without knowing which human
+# being the record concerns - "who is this about" is the irreducible minimum
+# for doing the job at all. A full telephone number is not: it is needed to
+# *contact* the principal, which is a different and much rarer act than
+# identifying them. Masking the name would break the work; masking the
+# contact details does not.
+#
+# Granted below to `admin` and `dpo` only. That is a deliberate least-
+# privilege starting point, not an exhaustive judgement: `auditor` reviews
+# the compliance trail and `viewer` reads dashboards, and neither needs a
+# principal's phone number to do it. The three org-scoped admins
+# (`jobhub_admin`, `codex_admin`, `skilllearn_admin`) also do NOT hold it
+# yet - recorded here as a decision rather than left as an oversight. They
+# run day-to-day consent operations for one tenant and may well turn out to
+# need it; widening the grant is a one-line change here plus a re-seed (or
+# a restart, since sync_roles() below re-syncs on every boot), and is far
+# easier than clawing the capability back once it has been handed out.
+PERM_CUSTOMER_CONTACT_VIEW = "customer.contact.view"
+
 ALL_PERMISSIONS = [
     PERM_DASHBOARD,
     PERM_CUSTOMER_VIEW,
@@ -111,6 +145,7 @@ ALL_PERMISSIONS = [
     PERM_ERASURE_MANAGE,
     PERM_RIGHTS_VIEW,
     PERM_RIGHTS_MANAGE,
+    PERM_CUSTOMER_CONTACT_VIEW,
 ]
 
 ROLE_PERMISSIONS: dict[str, list[str]] = {
@@ -178,6 +213,12 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
         # about an ignored access request must be able to work the request.
         PERM_RIGHTS_VIEW,
         PERM_RIGHTS_MANAGE,
+        # Contact details: the DPO is the statutory point of contact for
+        # grievance redressal (s.10(2)(a)) and the person who has to reach
+        # a principal to answer one - and who serves the s.8(6)/R.7(1)
+        # breach notice to each affected principal individually. Reaching
+        # them requires their real email address and telephone number.
+        PERM_CUSTOMER_CONTACT_VIEW,
     ],
     "auditor": [
         # Strictly read-only, for independent compliance review - every

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { customersApi } from '../api'
-import { Avatar, Badge, FooterRow, MaskedValue, MetricCard, PageHeading, TableSkeleton, formatDate } from '../components/ui'
+import { Avatar, Badge, ContactValue, FooterRow, MetricCard, PageHeading, TableSkeleton, formatDate } from '../components/ui'
 import { IconShield, IconUsers } from '../components/icons'
 import type { Customer } from '../types'
 
@@ -24,7 +24,13 @@ export function CustomersPage() {
 
   return (
     <div>
-      <PageHeading title="Customers" subtitle="Customer references synchronized from business applications — email and phone are masked for privacy" />
+      {/* The subtitle says WHY a value may be masked, not merely that it is.
+          The server masks email and phone for callers without the
+          `customer.contact.view` permission and sends the masked string; this
+          page renders whatever it receives. Saying "masked for privacy" while
+          the API returned the real values is what made the old behaviour
+          misleading. */}
+      <PageHeading title="Customers" subtitle="Customer references synchronized from business applications — email and phone are shown in full only to roles permitted to see contact details; otherwise the server returns them masked" />
 
       <div className="metric-grid mb">
         <MetricCard label="Customers" value={customers.length} icon={<IconUsers size={20} />} tone="primary" sub={search ? 'matching current search' : 'in consent directory'} />
@@ -56,8 +62,8 @@ export function CustomersPage() {
                         </div>
                       </div>
                     </td>
-                    <td>{c.email ? <MaskedValue type="email" value={c.email} /> : '—'}</td>
-                    <td>{c.phone ? <MaskedValue type="phone" value={c.phone} /> : '—'}</td>
+                    <td><ContactValue value={c.email} /></td>
+                    <td><ContactValue value={c.phone} /></td>
                     <td><Badge status={c.status} /></td>
                     <td><span className="badge b-primary">{c.source_app || 'unknown'}</span></td>
                     <td>

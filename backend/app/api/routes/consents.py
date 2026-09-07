@@ -6,9 +6,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_org_scope, require_permission
+from app.api.deps import get_org_scope, require_permission, user_has_permission
 from app.core.database import get_db
-from app.core.rbac import PERM_CONSENT_MANAGE, PERM_CONSENT_VIEW
+from app.core.rbac import PERM_CONSENT_MANAGE, PERM_CONSENT_VIEW, PERM_CUSTOMER_CONTACT_VIEW
+from app.core.utils import mask_identifier
 from app.models.entities import (
     Consent,
     ConsentContext,
@@ -111,10 +112,14 @@ def customer_summary(
               actor_role=current_user.role.name if current_user.role else "",
               source_app="UI", customer_id=customer.id, customer_external_id=customer.external_id,
               reason="Customer consent profile viewed")
-    return _build_summary(db, customer, scope=scope)
+    return _build_summary(
+        db, customer, scope=scope,
+        contact_visible=user_has_permission(current_user, PERM_CUSTOMER_CONTACT_VIEW),
+    )
 
 
-def _build_summary(db: Session, customer: Customer, scope: str | None = None) -> CustomerConsentSummary:
+def _build_summary(db: Session, customer: Customer, scope: str | None = None,
+                   contact_visible: bool = False) -> CustomerConsentSummary:
     q = db.query(Consent).filter(Consent.customer_id == customer.id)
     if scope:
         q = q.filter(Consent.source_app == scope)
@@ -132,7 +137,7 @@ def _build_summary(db: Session, customer: Customer, scope: str | None = None) ->
             expiring_soon.append(_consent_out(c))
     purposes = db.query(Purpose).filter(Purpose.is_active.is_(True)).count()
     return CustomerConsentSummary(
-        customer=_customer_out(customer),
+        customer=_customer_out(customer, contact_visible=contact_visible),
         total_purposes=purposes,
         status_counts=status_counts,
         expiring_soon=expiring_soon,
@@ -140,19 +145,20 @@ def _build_summary(db: Session, customer: Customer, scope: str | None = None) ->
     )
 
 
-def _customer_out(customer: Customer):
+def _customer_out(customer: Customer, *, contact_visible: bool = False):
+    """The customer header on a consent summary, masked by the same rule as
+    GET /customers.
+
+    This embeds a full `CustomerOut`, so leaving it unmasked would have made
+    `customer.contact.view` decorative: any holder of `consent.view` could
+    read the contact details the customer directory had just stopped showing
+    them by asking for the same principal's consent summary instead.
+    Defaults to masked so a future caller that forgets the argument fails
+    closed.
+    """
     from app.schemas.schemas import CustomerOut
 
-    return CustomerOut(
-        id=customer.id,
-        external_id=customer.external_id,
-        name=customer.name,
-        email=customer.email,
-        phone=customer.phone,
-        status=customer.status,
-        source_app=customer.source_app,
-        created_at=customer.created_at,
-    )
+    return CustomerOut.for_staff(customer, contact_visible=contact_visible)
 
 
 @router.get("", response_model=list[ConsentOut])
@@ -273,8 +279,12 @@ def export_customer_consents(
     pdf.section_title("Customer Information")
     pdf.field("Name", customer.name)
     pdf.field("External ID", customer.external_id)
-    pdf.field("Email", customer.email or "-")
-    pdf.field("Phone", customer.phone or "-")
+    # Same rule as the JSON responses: a PDF is just another rendering of the
+    # record, and it would be an odd control that masked the screen but let
+    # the same viewer download the contact details as a file.
+    _contact_visible = user_has_permission(current_user, PERM_CUSTOMER_CONTACT_VIEW)
+    pdf.field("Email", (customer.email if _contact_visible else mask_identifier(customer.email)) or "-")
+    pdf.field("Phone", (customer.phone if _contact_visible else mask_identifier(customer.phone)) or "-")
     pdf.field("Status", customer.status)
     pdf.field("Source App", customer.source_app or "-")
     pdf.field("Created At", str(customer.created_at)[:19] if customer.created_at else "-")

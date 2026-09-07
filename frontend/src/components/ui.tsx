@@ -56,29 +56,31 @@ export function daysUntil(iso?: string | null): number | null {
   return Math.ceil(diff / 86400000)
 }
 
-// ---------- PII masking ----------
-export function maskPhone(phone?: string | null): string {
-  if (!phone) return '—'
-  const digits = phone.replace(/\D/g, '')
-  if (digits.length < 3) return '****'
-  const head = digits.slice(0, 2)
-  const tail = digits.slice(-1)
-  return head + '*'.repeat(digits.length - 3) + tail
-}
+// ---------- Contact details ----------
+// There used to be a `MaskedValue` here that masked an email or phone number
+// in the browser. It has been removed on purpose. The API used to return the
+// real values and this component hid them on screen, so the masking was a
+// display convention rather than a control: anyone with a `customer.view`
+// token read the full contact details out of the JSON while the page told
+// staff they were protected.
+//
+// The server now decides (app/api/routes/customers.py, gated on the
+// `customer.contact.view` permission) and sends back `an***@example.com` when
+// the caller may not see the real thing. Masking again here would only mangle
+// an already-masked string, so this component renders exactly what the API
+// returned and merely marks it visually when it arrived masked. If you need
+// to hide a value from someone, hide it on the server; do not add a masking
+// component back here.
+const MASKED_MARKER = '***'
 
-export function maskEmail(email?: string | null): string {
-  if (!email) return '—'
-  const at = email.lastIndexOf('@')
-  if (at <= 0) return '***'
-  const local = email.slice(0, at)
-  const domain = email.slice(at)
-  if (local.length <= 2) return local[0] + '***' + domain
-  return local.slice(0, 2) + '***' + local.slice(-1) + domain
-}
-
-export function MaskedValue({ value, type, label = 'Masked for privacy' }: { value: string; type: 'phone' | 'email'; label?: string }) {
-  const text = type === 'phone' ? maskPhone(value) : maskEmail(value)
-  return <span className="masked" title={label}>{text}</span>
+export function ContactValue({ value }: { value?: string | null }) {
+  if (!value) return <>{'—'}</>
+  if (!value.includes(MASKED_MARKER)) return <>{value}</>
+  return (
+    <span className="masked" title="Masked by the server — your role does not hold customer.contact.view">
+      {value}
+    </span>
+  )
 }
 
 // ---------- Toast system ----------

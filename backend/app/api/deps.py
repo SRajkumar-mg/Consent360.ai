@@ -213,3 +213,18 @@ def get_customer_from_context(db: Session, payload: dict) -> Customer:
 def role_has_permission(role: Role, permission: str) -> bool:
     perms = role.permissions or []
     return permission in perms or "*" in perms
+
+
+def user_has_permission(user: Optional[User], permission: str) -> bool:
+    """Does this staff user hold `permission`? Returns a bool instead of
+    raising, unlike `require_permission`.
+
+    For routes that stay reachable but render LESS to a caller who lacks a
+    permission - the customer directory is readable with `customer.view` but
+    only shows real contact details to a holder of `customer.contact.view`.
+    Fails closed on a user with no role at all, exactly like
+    `require_permission` does.
+    """
+    if user is None or user.role is None:
+        return False
+    return role_has_permission(user.role, permission)

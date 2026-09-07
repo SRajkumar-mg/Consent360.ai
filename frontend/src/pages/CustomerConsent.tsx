@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { consentsApi, customersApi } from '../api'
 import { getErrorMessage } from '../api/client'
-import { useToast, Badge, formatDate, daysUntil, Spinner, Modal, ConfirmDialog, MaskedValue, MetricCard, Avatar, FooterRow } from '../components/ui'
+import { useToast, Badge, formatDate, daysUntil, Spinner, Modal, ConfirmDialog, ContactValue, MetricCard, Avatar, FooterRow } from '../components/ui'
 import { IconCheck, IconX, IconRefresh, IconEye, IconClock, IconHistory, IconShield, IconAlert, IconDownload } from '../components/icons'
 import { useAuth } from '../context/AuthContext'
 import type { Consent, Customer, CustomerConsentSummary } from '../types'
@@ -168,7 +168,10 @@ export function CustomerConsentPage() {
         <Avatar name={customer.name} size={48} />
         <div className="customer-panel-text">
           <div className="customer-panel-name">{customer.name} <Badge status={customer.status} /></div>
-          <div className="customer-panel-meta">ID: <span className="mono">{customer.external_id}</span> · Email: {customer.email ? <MaskedValue type="email" value={customer.email} /> : 'no email'} · Phone: {customer.phone ? <MaskedValue type="phone" value={customer.phone} /> : 'no phone'}</div>
+          {/* Same rule as the Customers list: GET /customers/{id} already
+              masked these if the caller lacks `customer.contact.view`, so
+              masking again here would only mangle the masked string. */}
+          <div className="customer-panel-meta">ID: <span className="mono">{customer.external_id}</span> · Email: {customer.email ? <ContactValue value={customer.email} /> : 'no email'} · Phone: {customer.phone ? <ContactValue value={customer.phone} /> : 'no phone'}</div>
         </div>
         <div className="page-actions">
           <button className="btn" onClick={downloadConsents} disabled={downloading}><IconDownload size={15} /> {downloading ? 'Exporting…' : 'Download PDF'}</button>

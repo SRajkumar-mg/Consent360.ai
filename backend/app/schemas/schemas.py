@@ -165,6 +165,23 @@ class CustomerUpdate(BaseModel):
 
 
 class CustomerOut(BaseModel):
+    """A `customers` row as returned to a caller.
+
+    Plain validation of this model (``CustomerOut.model_validate(customer)``,
+    or letting FastAPI coerce an ORM row against a ``response_model``) returns
+    the record UNMASKED, and that is deliberate: the data principal's own
+    portal (`/portal/overview`, `PortalOverview.customer`) is built this way
+    and a principal reading her own record must see her own email address and
+    telephone number in full. Masking is therefore never a validator on this
+    model and never a property on the ORM entity - nothing internal
+    (notifications, the erasure engine, the CRM sync) may start seeing masked
+    values, because a masked address handed to `queue_notification` is an
+    outage, not a cosmetic bug.
+
+    Staff-facing routes build their response through `for_staff()` below
+    instead.
+    """
+
     model_config = ConfigDict(from_attributes=True)
     id: int
     external_id: str
@@ -174,6 +191,38 @@ class CustomerOut(BaseModel):
     status: str
     source_app: str
     created_at: datetime
+
+    @classmethod
+    def for_staff(cls, customer, *, contact_visible: bool) -> "CustomerOut":
+        """Render `customer` for a member of staff.
+
+        `contact_visible` is the caller's `customer.contact.view` permission
+        (see app/core/rbac.py). Without it, `email` and `phone` come back
+        already masked - `an***@example.com` - so that the masking the admin
+        console displays is a control the server enforces rather than a
+        convention the browser observes. Callers that hold the permission get
+        the record untouched.
+
+        `name` is NEVER masked here. That asymmetry is deliberate and is
+        argued in full next to `PERM_CUSTOMER_CONTACT_VIEW` in
+        app/core/rbac.py: a staff member cannot work a grievance or a rights
+        request without knowing which person it concerns, whereas a full
+        telephone number is needed to *contact* that person, which is a
+        different and much rarer need. If you are here wondering why one
+        field is masked and the other is not, that is the answer.
+        """
+        from app.core.utils import mask_identifier
+
+        return cls(
+            id=customer.id,
+            external_id=customer.external_id,
+            name=customer.name,
+            email=(customer.email if contact_visible else mask_identifier(customer.email)) or "",
+            phone=(customer.phone if contact_visible else mask_identifier(customer.phone)) or "",
+            status=customer.status,
+            source_app=customer.source_app,
+            created_at=customer.created_at,
+        )
 
 
 # ---------------------------------------------------------------------------
