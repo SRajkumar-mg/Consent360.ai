@@ -1,0 +1,40 @@
+{
+  "generated_at": "2026-09-03T21:31:23.176666+00:00",
+  "contexts": [
+    {
+      "id": 2,
+      "old_source_app": "CRM_PORTAL",
+      "new_source_app": "CRM_APP",
+      "old_is_active": false,
+      "customer_id": 2
+    },
+    {
+      "id": 4,
+      "old_source_app": "CRM_PORTAL",
+      "new_source_app": "CODEX",
+      "old_is_active": false,
+      "customer_id": 14
+    },
+    {
+      "id": 5,
+      "old_source_app": "CRM_PORTAL",
+      "new_source_app": "SKILLLEARN",
+      "old_is_active": false,
+      "customer_id": 15
+    },
+    {
+      "id": 19,
+      "old_source_app": "CRM_PORTAL",
+      "new_source_app": "CODEX",
+      "old_is_active": false,
+      "customer_id": 41
+    },
+    {
+      "id": 20,
+      "old_source_app": "CRM_PORTAL",
+      "new_source_app": "SKILLLEARN",
+      "old_is_active": false,
+      "customer_id": 42
+    }
+  ]
+}

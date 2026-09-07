@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CareerHub — Find Your Next Opportunity</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <!-- R2-10 demo: stands in for a real analytics/ad snippet. The browser
+         never executes a script whose type it does not recognise, so this is
+         inert until src/consentGate.ts activates it - which only happens once
+         "analytics" consent actually exists (see initConsentGate() in
+         main.tsx). This is what the K-48 periodic scan (scanForUngatedTags in
+         consentGate.ts) checks for. -->
+    <script type="text/plain" data-consent-category="analytics">
+      window.__consent360DemoAnalyticsFired = (window.__consent360DemoAnalyticsFired || 0) + 1;
+    </script>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

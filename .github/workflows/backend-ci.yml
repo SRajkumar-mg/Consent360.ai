@@ -1,0 +1,107 @@
+name: backend-ci
+
+# R3-12: pytest suite + security scanning for cms/backend.
+#
+# There is no CI service actually connected to this repository today (it is
+# not pushed to a remote in this environment) - this workflow is authored so
+# that IF/WHEN the repo is pushed to GitHub, it runs correctly unmodified.
+# Every step here also runs locally via .github/scripts/backend_ci_local.sh,
+# which was actually executed as part of building this (see
+# backend/docs/compliance/ for the recorded local run) - "CI green" is
+# claimed only about that local run, not about this remote workflow, which
+# has never executed.
+
+on:
+  push:
+    branches: [main, "build/**"]
+    paths:
+      - "cms/backend/**"
+      - ".github/workflows/backend-ci.yml"
+      - ".github/scripts/backend_ci_local.sh"
+  pull_request:
+    paths:
+      - "cms/backend/**"
+      - ".github/workflows/backend-ci.yml"
+      - ".github/scripts/backend_ci_local.sh"
+  workflow_dispatch: {}
+
+defaults:
+  run:
+    working-directory: cms/backend
+
+jobs:
+  test-and-scan:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: consent_platform
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      # tests/conftest.py derives its OWN throwaway "<db>_test" database
+      # name from this and creates/drops it itself - it never runs the
+      # suite against this database directly.
+      DATABASE_URL: postgresql+psycopg2://postgres:postgres@localhost:5432/consent_platform
+      SCHEDULER_ENABLED: "false"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: "pip"
+          cache-dependency-path: cms/backend/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pip-audit bandit
+
+      - name: Dependency vulnerability scan (pip-audit)
+        run: |
+          pip-audit -r requirements.txt --desc || \
+            echo "::warning::pip-audit reported findings - see backend/docs/compliance/ for the reviewed disposition of each one as of the last manual review; a human should still read new output above."
+
+      - name: Static security scan (bandit)
+        run: |
+          bandit -r app -ll || \
+            echo "::warning::bandit reported medium+ severity findings - see backend/docs/compliance/ for the reviewed disposition of each one as of the last manual review."
+
+      - name: Alembic drift check (fresh database, migrations only)
+        # R1-13's actual DoD: build an EMPTY database, run `alembic upgrade
+        # head` against it and nothing else, then assert `alembic check`
+        # reports no drift - the fresh-clone check that would have caught a
+        # migration chaining from an uncommitted parent, a colliding
+        # revision id, or a model changed with no matching migration. Its
+        # own "consent_platform_alembic_check" database, never the
+        # "consent_platform_test" one tests/conftest.py owns below - this
+        # runs in the ephemeral `postgres` service container above, which
+        # exists only for this job run, so nothing here is ever the shared
+        # dev database.
+        run: |
+          python -c "
+          import psycopg2
+          conn = psycopg2.connect(host='localhost', port=5432, user='postgres', password='postgres', dbname='postgres')
+          conn.autocommit = True
+          cur = conn.cursor()
+          cur.execute('DROP DATABASE IF EXISTS consent_platform_alembic_check')
+          cur.execute('CREATE DATABASE consent_platform_alembic_check')
+          "
+          DATABASE_URL=postgresql+psycopg2://postgres:postgres@localhost:5432/consent_platform_alembic_check python -m alembic upgrade head
+          DATABASE_URL=postgresql+psycopg2://postgres:postgres@localhost:5432/consent_platform_alembic_check python -m alembic check
+
+      - name: Alembic / pytest full suite
+        run: python -m pytest -q

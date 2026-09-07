@@ -1,0 +1,58 @@
+-- ============================================================================
+-- PRECONDITION - read this before running anything below.
+--
+-- This REVOKE protects nothing unless the role it targets is a NON-OWNING
+-- role. Table ownership in Postgres carries implicit, unrevocable DDL
+-- rights: the owner of audit_logs can always run
+--   ALTER TABLE audit_logs DISABLE TRIGGER trg_audit_logs_block_update;
+-- (and the DELETE trigger, and re-enable both afterwards), regardless of
+-- what has been REVOKEd from it with GRANT/REVOKE, because REVOKE only
+-- withdraws privileges - it cannot take ownership-derived rights away from
+-- the owner. Running this script against the table's own owning role is a
+-- no-op in every way that matters: that role can still disable the
+-- triggers, UPDATE/DELETE freely, and re-enable them, leaving no trace
+-- beyond what a competent attacker with that role's credentials would
+-- bother to clean up anyway.
+--
+-- This project's current single-role setup (one DATABASE_URL, one role,
+-- used for both the running API process and for `alembic upgrade`) means
+-- that role owns audit_logs (it created the table). Applying this script
+-- as-is, today, against that role achieves NOTHING. Do not run it until:
+--
+--   1. A separate, NON-OWNING application role exists - the one the
+--      running API process connects as - distinct from whichever role
+--      owns the audit_logs table (and ideally every table).
+--   2. Migrations run as a DIFFERENT role: the owning role, or a
+--      superuser, never the runtime application role. (`alembic upgrade`
+--      needs to create/alter the append-only trigger and, per this
+--      migration's own backfill, write to audit_logs directly - the
+--      runtime role must not be able to do either of those things itself,
+--      which is exactly what this REVOKE is trying to guarantee.)
+--
+-- What this script DOES guarantee, once those two preconditions hold: the
+-- runtime application role - which is what every network-facing code path
+-- (the FastAPI app, the scheduler jobs) actually connects as - cannot issue
+-- a bare UPDATE or DELETE against audit_logs, and cannot disable the
+-- triggers (ALTER TABLE is an owner-only right it never had). Combined with
+-- the append-only trigger, this closes the gap between "the application
+-- code never calls UPDATE/DELETE on this table" (true today, but only a
+-- property of the current code) and "the credentials that code runs with
+-- are incapable of it even if that code were compromised or a future
+-- change introduced a bug."
+--
+-- What this script does NOT guarantee, under any configuration: protection
+-- against anyone holding the owning role's or a superuser's credentials,
+-- or with direct filesystem/WAL access to the database server. Ledger
+-- integrity against that threat model needs an external, independent
+-- verification trail (e.g. periodically publishing verify_chain() results,
+-- or the entry_hash chain itself, somewhere the owning role cannot reach)
+-- - out of scope for this script.
+--
+-- This is NOT applied by Alembic and NOT run by the test suite: revoking
+-- UPDATE/DELETE from a role that also owns future migrations would block
+-- those migrations' own DDL, which is precisely why precondition #2 above
+-- requires migrations to run as a different role in the first place.
+--
+-- Replace consent360_app with the actual NON-OWNING application role name.
+-- ============================================================================
+REVOKE UPDATE, DELETE ON audit_logs FROM consent360_app;

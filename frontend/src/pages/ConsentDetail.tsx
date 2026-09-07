@@ -1,0 +1,140 @@
+import { useEffect, useState } from 'react'
+import { Link, useParams } from 'react-router-dom'
+import { consentsApi } from '../api'
+import { Badge, PageHeading, Spinner, formatDateTime, daysUntil } from '../components/ui'
+import type { ConsentDetail, ConsentEvidence, ConsentHistory } from '../types'
+
+function timelineTone(h: ConsentHistory) {
+  const to = h.to_status
+  if (to === 'WITHDRAWN' || to === 'DENIED') return 'danger'
+  if (to === 'EXPIRED') return 'muted'
+  if (to === 'ACTIVE' || to === 'GRANTED' || to === 'RENEWED') return 'success'
+  if (to === 'UPDATED') return 'warn'
+  return ''
+}
+
+export function ConsentDetailPage() {
+  const { consentId } = useParams()
+  const [data, setData] = useState<ConsentDetail | null>(null)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    consentsApi.detail(Number(consentId)).then((r) => setData(r.data)).catch(() => setError('Consent not found'))
+  }, [consentId])
+
+  if (error) return <div className="alert alert-error">{error}</div>
+  if (!data) return <Spinner />
+
+  const c = data.consent
+
+  return (
+    <div>
+      <div className="text-sm text-muted"><Link to={`/customers/${c.customer_external_id}`}>← Back to consent dashboard</Link></div>
+      <PageHeading
+        title="Consent Details"
+        subtitle={<><span className="mono">{c.purpose_code}</span> · {c.purpose_name} · {c.data_category_name} · {c.processing_activity_name}</>}
+        actions={<Badge status={c.status} />}
+      />
+
+      <div className="grid-2 mb">
+        <div className="card">
+          <div className="card-header"><h3>Consent Record</h3></div>
+          <div className="card-body">
+            <div className="detail-grid">
+              <div className="detail-item"><span className="k">Purpose</span><div className="v">{c.purpose_name}</div></div>
+              <div className="detail-item"><span className="k">Purpose version</span><div className="v">v{c.purpose_version}</div></div>
+              <div className="detail-item"><span className="k">Data category</span><div className="v">{c.data_category_name}</div></div>
+              <div className="detail-item"><span className="k">Processing activity</span><div className="v">{c.processing_activity_name}</div></div>
+              <div className="detail-item"><span className="k">Consent version</span><div className="v">v{c.consent_version}</div></div>
+              <div className="detail-item"><span className="k">Status</span><div className="v"><Badge status={c.status} /></div></div>
+              <div className="detail-item"><span className="k">Granted at</span><div className="v">{formatDateTime(c.granted_at)}</div></div>
+              <div className="detail-item"><span className="k">Expires at</span><div className="v">{formatDateTime(c.expires_at)}{c.expires_at && <span className="text-xs text-muted"> ({daysUntil(c.expires_at)} days)</span>}</div></div>
+              <div className="detail-item"><span className="k">Withdrawn at</span><div className="v">{formatDateTime(c.withdrawn_at)}</div></div>
+              <div className="detail-item"><span className="k">Denied at</span><div className="v">{formatDateTime(c.denied_at)}</div></div>
+              <div className="detail-item"><span className="k">Collection method</span><div className="v">{c.collection_method}</div></div>
+              <div className="detail-item"><span className="k">Source app</span><div className="v">{c.source_app || '—'}</div></div>
+              <div className="detail-item"><span className="k">Applicable policy</span><div className="v">{c.policy_code ? `${c.policy_code} v${c.policy_version}` : '—'}</div></div>
+              <div className="detail-item"><span className="k">Created</span><div className="v">{formatDateTime(c.created_at)}</div></div>
+            </div>
+            {c.consent_text && (
+              <>
+                <div className="divider" />
+                <div className="detail-item"><span className="k">Consent text</span>
+                  <div className="v" style={{ fontStyle: 'italic', color: 'var(--text-secondary)', marginTop: 6 }}>“{c.consent_text}”</div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-header"><h3>Consent Timeline</h3></div>
+          <div className="card-body">
+            <div className="timeline">
+              {[...data.history].reverse().map((h) => (
+                <div key={h.id} className={`timeline-item ${timelineTone(h)}`}>
+                  <div className="flex-between">
+                    <b style={{ fontSize: 13 }}>{h.action.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (x) => x.toUpperCase())}</b>
+                    <span className="text-xs text-muted">{formatDateTime(h.created_at)}</span>
+                  </div>
+                  <div className="text-sm text-secondary mt-sm">
+                    {h.from_status ? <Badge status={h.from_status} /> : <span className="muted">—</span>}
+                    <span style={{ margin: '0 6px' }}>→</span>
+                    <Badge status={h.to_status ?? h.from_status ?? '—'} />
+                  </div>
+                  {h.reason && <div className="text-xs text-muted mt-sm">{h.reason}</div>}
+                  <div className="text-xs text-muted mt-sm">by {h.actor_username} · v{h.consent_version}{h.request_id ? ` · req ${h.request_id}` : ''}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-header"><h3>Consent Evidence</h3></div>
+        <div className="table-wrap">
+          <table className="table">
+            <thead><tr><th>Evidence Ref</th><th>Collected At</th><th>By</th><th>Method</th><th>Source</th><th>Purpose Ver</th><th>Policy Ver</th><th>GPC Signal</th></tr></thead>
+            <tbody>
+              {data.evidence.length === 0 ? (
+                <tr><td colSpan={8} className="empty">No evidence recorded yet — evidence is created when consent is granted or renewed</td></tr>
+              ) : data.evidence.map((e: ConsentEvidence) => {
+                // R2-10 / gap Q-07: gpc_signal is the server's own read of the
+                // Sec-GPC request header at collection time (null = caller sent
+                // no header); details.claimed_gpc_signal is whatever the
+                // caller's request body separately claimed - kept apart per
+                // ConsentEvidence.gpc_signal's docstring, never collapsed here.
+                const claimed = e.details?.claimed_gpc_signal
+                const observedLabel = e.gpc_signal == null ? 'No header sent' : e.gpc_signal ? 'Objection (1)' : 'Not sent (0)'
+                const claimedLabel = typeof claimed === 'boolean' ? (claimed ? 'claimed: yes' : 'claimed: no') : null
+                return (
+                  <tr key={e.id}>
+                    <td className="mono">{e.evidence_ref}</td>
+                    <td>{formatDateTime(e.collected_at)}</td>
+                    <td>{e.collected_by}</td>
+                    <td>{e.collection_method}</td>
+                    <td>{e.source_app}</td>
+                    <td>v{e.purpose_version}</td>
+                    <td>{e.policy_version ? `v${e.policy_version}` : '—'}</td>
+                    <td>
+                      <span title="Server-observed Sec-GPC request header">{observedLabel}</span>
+                      {claimedLabel && (
+                        <>
+                          {' · '}
+                          <span className="text-xs text-muted" title="Client-claimed value from the request body, kept separately from the server-observed header">
+                            {claimedLabel}
+                          </span>
+                        </>
+                      )}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )
+}
