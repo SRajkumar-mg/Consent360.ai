@@ -31,7 +31,7 @@ const NAV_GROUPS: Array<{ group: string; items: NavEntry[] }> = [
     items: [
       { label: 'Overview', icon: IconDashboard, path: '/dashboard', exact: true, perm: 'dashboard.view' },
       { label: 'Compliance KPIs', icon: IconShield, path: '/compliance', perm: 'dashboard.view' },
-      { label: 'Customers', icon: IconCustomers, path: '/customers', perm: 'customer.view' },
+      /* { label: 'Customers', icon: IconCustomers, path: '/customers', perm: 'customer.view' }, */
       { label: 'Audit Explorer', icon: IconAudit, path: '/audit', perm: 'audit.view' },
     ],
   },
